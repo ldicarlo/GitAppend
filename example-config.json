@@ -1,0 +1,9 @@
+{
+  "settings": {},
+  "appenders": {
+    "/etc/file/to/sync": {
+      "every_seconds": 10,
+      "git_folder_location": "/projects/synced_git_project"
+    }
+  }
+}
