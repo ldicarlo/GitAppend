@@ -41,13 +41,12 @@
               cargoArtifacts = rust-dependencies;
 
               doCheck = true;
+              checkPhase = ''
+                runHook preCheck
+                cargo test
+              '';
             };
-            # postUnpack = ''
-            #   cd $sourceRoot/api
-            #   sourceRoot="."
-            # '';
           };
         };
-        #    defaultPackage = packages.all;
       });
 }

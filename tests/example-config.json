@@ -1,0 +1,8 @@
+{
+  "settings": "hello",
+  "appenders": {
+    "/etc/file/to/sync": {
+      "git_folder_location": "/home/someone/folder/.git"
+    }
+  }
+}

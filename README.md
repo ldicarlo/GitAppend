@@ -1,8 +1,6 @@
 # Features
 
-- [ ] append every 5 seconds to a file
 - [ ] config file
-- [ ] stat diffs before sending
 - [ ] systemd service
 - [ ] logs
 - [ ] config file + systemd service (`just-append run --config=./config.json`)
@@ -13,6 +11,15 @@
   - sorted:bool ?
   - unique:bool ?
   - password file location ?
+- [ ] nixos service
 
 
 ## V2 Features
+
+- [ ] nixos config as expected
+- [ ] encrypted
+
+## Someday
+
+- [ ] stat diffs before sending
+- [ ] append every 5 seconds to a file
