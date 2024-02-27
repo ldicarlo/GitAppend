@@ -95,7 +95,7 @@ pub mod tests {
                 .into_iter()
                 .collect()
             },
-            parse_config(String::from("tests/example-config.json"))
+            parse_config(String::from("example-config.json"))
         );
     }
 }

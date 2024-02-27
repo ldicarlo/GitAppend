@@ -42,7 +42,7 @@
             rust-package-binary = craneLib.buildPackage {
               inherit src;
               cargoArtifacts = rust-dependencies;
-              buildInputs = with pkgs; [ pkg-config ];
+              buildInputs = with pkgs; [ pkg-config openssl ];
               doCheck = true;
               checkPhase = ''
                 runHook preCheck
