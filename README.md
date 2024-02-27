@@ -18,7 +18,7 @@
 
 - [ ] nixos config as expected
 - [ ] encrypted
-
+- [ ] encrypt lines from nth char
 ## Someday
 
 - [ ] stat diffs before sending

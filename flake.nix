@@ -19,10 +19,12 @@
       in
       rec {
         devShells.default = pkgs.mkShell {
-          buildInputs = [
-            pkgs.rustc
-            pkgs.rustfmt
-            pkgs.cargo
+          buildInputs = with pkgs; [
+            rustc
+            rustfmt
+            cargo
+            pkg-config
+            openssl
           ];
         };
 
@@ -34,12 +36,13 @@
             src = craneLib.cleanCargoSource ./.;
             rust-dependencies = craneLib.buildDepsOnly {
               inherit src;
+              buildInputs = with pkgs; [ pkg-config openssl ];
             };
 
             rust-package-binary = craneLib.buildPackage {
               inherit src;
               cargoArtifacts = rust-dependencies;
-
+              buildInputs = with pkgs; [ pkg-config ];
               doCheck = true;
               checkPhase = ''
                 runHook preCheck

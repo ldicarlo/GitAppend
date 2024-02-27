@@ -6,13 +6,14 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub settings: String,
-    pub appenders: HashMap<String, Appender>,
+    pub appenders: HashMap<String, HashMap<String, Appender>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Appender {
-    pub git_folder_location: String,
+    pub source: String,
     // pub Option<sorted>: bool
     // pub Option<unique>: bool
+    pub password: Option<String>,
 }

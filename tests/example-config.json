@@ -1,8 +1,13 @@
 {
   "settings": "hello",
   "appenders": {
-    "/etc/file/to/sync": {
-      "git_folder_location": "/home/someone/folder/.git"
+    "/home/someone/folder/.git": {
+      "plaintext_file": {
+        "source": "file_in_git"
+      },
+      "other_plaintext_file": {
+        "source": "other_file_in_git"
+      }
     }
   }
 }
