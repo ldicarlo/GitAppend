@@ -46,6 +46,7 @@
               doCheck = true;
               checkPhase = ''
                 runHook preCheck
+                cp -r tests $out/
                 cargo test
               '';
             };
