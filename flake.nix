@@ -46,7 +46,8 @@
               doCheck = true;
               checkPhase = ''
                 runHook preCheck
-                cp -r tests $out/
+                mkdir -p $out
+                cp -r tests $out/tests
                 cargo test
               '';
             };
