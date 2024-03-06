@@ -6,7 +6,8 @@
         "source": "file_in_git"
       },
       "other_plaintext_file": {
-        "source": "other_file_in_git"
+        "source": "other_file_in_git",
+        "password_file": "./test"
       }
     }
   }

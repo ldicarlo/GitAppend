@@ -78,14 +78,14 @@ pub mod tests {
                             "plaintext_file".to_string(),
                             Appender {
                                 source: "file_in_git".to_string(),
-                                password: None,
+                                password_file: None,
                             }
                         ),
                         (
                             "other_plaintext_file".to_string(),
                             Appender {
                                 source: "other_file_in_git".to_string(),
-                                password: None,
+                                password_file: Some(String::from("./test")),
                             }
                         )
                     ]

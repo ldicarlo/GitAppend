@@ -15,5 +15,5 @@ pub struct Appender {
     pub source: String,
     // pub Option<sorted>: bool
     // pub Option<unique>: bool
-    pub password: Option<String>,
+    pub password_file: Option<String>,
 }
