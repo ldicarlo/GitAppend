@@ -1,8 +1,12 @@
-use std::{fs::File, io::BufReader};
-
 use clap::{Parser, Subcommand};
 use git2::Repository;
+use std::{
+    fs::File,
+    io::{BufReader, Read, Write},
+};
 
+use crate::age::{decrypt, encrypt};
+mod age;
 mod config;
 
 fn main() {
@@ -19,20 +23,40 @@ fn main_run(path: String) {
         println!("git pull {:?}", git_folder);
         match Repository::open(git_folder) {
             Ok(repo) => {
-                let _ = repo.fetchhead_foreach(|_, _, c, _| {
-                    println!("Updated {} to {}", git_folder, c);
-                    for (file, file_appender) in appender.iter() {
-                        println!("decrypt {:?}", file);
-                        println!("merge {:?}", file);
-                    }
-
+                let _ = repo.fetchhead_foreach(|r, _, c, _| {
+                    println!("Updated {} to {} ({})", git_folder, c, r);
                     true
                 });
+                for (file_path, file_appender) in appender.iter() {
+                    println!("Opening: {}", file_appender.source);
+                    let contents = get_file_contents(file_appender.clone().source);
+                    println!("Contents of {:?}:\n{:?}", file_appender.source, contents);
+                    println!("decrypt {:?}", file_path);
+                    if let Some(password_file) = file_appender.clone().password_file {
+                        let passphrase = get_file_contents(password_file);
+                        let content = decrypt(contents, String::from_utf8(passphrase).unwrap());
+                        write_to_file(file_path, content)
+                    }
+                    println!("merge {:?}", file_path);
+                }
             }
             Err(e) => panic!("failed to open: {}", e),
         };
         println!("git push {:?}", git_folder);
     }
+}
+
+fn write_to_file(path: &String, content: Vec<u8>) {
+    let mut file = File::create(path).unwrap();
+    file.write_all(&content).unwrap();
+}
+
+fn get_file_contents(path: String) -> Vec<u8> {
+    let file = File::open(path.clone()).unwrap();
+    let mut buf_reader = BufReader::new(file);
+    let mut contents = Vec::new();
+    buf_reader.read(&mut contents).unwrap();
+    contents
 }
 
 fn parse_config(path: String) -> config::Config {
