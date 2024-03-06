@@ -1,8 +1,9 @@
 use clap::{Parser, Subcommand};
 use git2::Repository;
 use std::{
+    collections::BTreeSet,
     fs::{self, File},
-    io::{BufReader, Read, Write},
+    io::{self, BufRead, BufReader, Write},
 };
 
 use crate::age::{decrypt, encrypt};
@@ -28,14 +29,36 @@ fn main_run(path: String) {
                     true
                 });
                 for (file_path, file_appender) in appender.iter() {
-                    println!("Opening: {}", file_appender.source);
-                    let contents = get_file_contents(file_appender.clone().source);
-                    println!("Contents of {:?}:\n{:?}", file_appender.source, contents);
-                    if let Some(password_file) = file_appender.clone().password_file {
-                        let passphrase = get_file_contents(password_file);
-                        let content = decrypt(contents, String::from_utf8(passphrase).unwrap());
-                        write_to_file(file_path, content)
-                    }
+                    let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
+                    let mut final_rw_content = rw_contents;
+                    let new_rw_content =
+                        &mut if let Some(password_file) = file_appender.clone().password_file {
+                            let ro_contents =
+                                get_file_contents(&file_appender.source).unwrap_or(Vec::new());
+                            let passphrase = get_file_contents(&password_file).unwrap();
+                            if ro_contents.is_empty() {
+                                Vec::new()
+                            } else {
+                                decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
+                            }
+                        } else {
+                            get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
+                        };
+                    final_rw_content.append(new_rw_content);
+                    let uniq_final_rw_content: Vec<Vec<u8>> =
+                        BTreeSet::from_iter(final_rw_content).into_iter().collect();
+                    write_to_file(file_path, uniq_final_rw_content.clone().join(&b'\n'));
+                    let final_ro_content =
+                        if let Some(password_file) = file_appender.clone().password_file {
+                            let passphrase = get_file_contents(&password_file).unwrap();
+                            encrypt(
+                                &uniq_final_rw_content,
+                                String::from_utf8(passphrase).unwrap(),
+                            )
+                        } else {
+                            uniq_final_rw_content.join(&b'\n')
+                        };
+                    write_to_file(&file_appender.source, final_ro_content);
                     println!("merge {:?}", file_path);
                 }
             }
@@ -50,8 +73,18 @@ fn write_to_file(path: &String, content: Vec<u8>) {
     file.write_all(&content).unwrap();
 }
 
-fn get_file_contents(path: String) -> Vec<u8> {
-    fs::read(path).unwrap()
+fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
+    let file = File::open(path)?;
+
+    Ok(io::BufReader::new(file)
+        .lines()
+        .into_iter()
+        .map(|l| l.unwrap().as_bytes().into())
+        .collect())
+}
+
+fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
+    fs::read(path)
 }
 
 fn parse_config(path: String) -> config::Config {
