@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use git2::Repository;
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{BufReader, Read, Write},
 };
 
@@ -31,7 +31,6 @@ fn main_run(path: String) {
                     println!("Opening: {}", file_appender.source);
                     let contents = get_file_contents(file_appender.clone().source);
                     println!("Contents of {:?}:\n{:?}", file_appender.source, contents);
-                    println!("decrypt {:?}", file_path);
                     if let Some(password_file) = file_appender.clone().password_file {
                         let passphrase = get_file_contents(password_file);
                         let content = decrypt(contents, String::from_utf8(passphrase).unwrap());
@@ -52,11 +51,7 @@ fn write_to_file(path: &String, content: Vec<u8>) {
 }
 
 fn get_file_contents(path: String) -> Vec<u8> {
-    let file = File::open(path.clone()).unwrap();
-    let mut buf_reader = BufReader::new(file);
-    let mut contents = Vec::new();
-    buf_reader.read(&mut contents).unwrap();
-    contents
+    fs::read(path).unwrap()
 }
 
 fn parse_config(path: String) -> config::Config {
