@@ -46,6 +46,9 @@ fn main_run(path: String) {
                         };
                     if current_ro_content.clone() == rw_contents.clone() {
                         continue;
+                    } else {
+                        println!("{:?}", current_ro_content);
+                        println!("{:?}", rw_contents);
                     }
                     if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
                         final_rw_content.append(current_ro_content);
