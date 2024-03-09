@@ -44,7 +44,9 @@ fn main_run(path: String) {
                         } else {
                             get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
                         };
-                    final_rw_content.append(new_rw_content);
+                    if !final_rw_content.is_empty() && !new_rw_content.is_empty() {
+                        final_rw_content.append(new_rw_content);
+                    }
                     let uniq_final_rw_content: Vec<Vec<u8>> =
                         BTreeSet::from_iter(final_rw_content).into_iter().collect();
                     write_to_file(file_path, uniq_final_rw_content.clone().join(&b'\n'));
