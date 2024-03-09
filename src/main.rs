@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use git2::Repository;
+use git2::{Repository, Signature};
 use std::{
     collections::BTreeSet,
     fs::{self, File},
@@ -61,10 +61,29 @@ fn main_run(path: String) {
                     write_to_file(&file_appender.source, final_ro_content);
                     println!("merge {:?}", file_path);
                 }
+                let sig = Signature::now("Git-Append", "git@git").unwrap();
+                let obj = repo
+                    .head()
+                    .unwrap()
+                    .resolve()
+                    .unwrap()
+                    .peel(git2::ObjectType::Commit)
+                    .unwrap();
+                let parent_commit = obj
+                    .into_commit()
+                    .map_err(|_| git2::Error::from_str("Couldn't find commit"))
+                    .unwrap();
+                let mut index = repo.index().unwrap();
+                index
+                    .add_all(["."], git2::IndexAddOption::DEFAULT, None)
+                    .unwrap();
+                let oid = index.write_tree().unwrap();
+                let tree = repo.find_tree(oid).unwrap();
+                repo.commit(None, &sig, &sig, "message", &tree, &[&parent_commit])
+                    .unwrap()
             }
-            Err(e) => panic!("failed to open: {}", e),
+            Err(e) => panic!("fai led to open: {}", e),
         };
-        println!("git push {:?}", git_folder);
     }
 }
 
