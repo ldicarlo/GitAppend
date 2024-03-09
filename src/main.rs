@@ -1,14 +1,18 @@
 use clap::{Parser, Subcommand};
-use git2::{Repository, Signature};
+use git2::Signature;
 use std::{
     collections::BTreeSet,
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
 };
 
-use crate::age::{decrypt, encrypt};
+use crate::{
+    age::{decrypt, encrypt},
+    git::{fetch, open},
+};
 mod age;
 mod config;
+mod git;
 
 fn main() {
     let args = Cli::parse();
@@ -22,91 +26,84 @@ fn main_run(path: String) {
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
         println!("git pull {:?}", git_folder);
-        match Repository::open(git_folder) {
-            Ok(repo) => {
-                let _ = repo.fetchhead_foreach(|r, _, c, _| {
-                    println!("Updated {} to {} ({})", git_folder, c, r);
-                    true
-                });
-                for (file_path, file_appender) in appender.iter() {
-                    let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
-                    let mut final_rw_content = rw_contents.clone();
-                    let current_ro_content =
-                        &mut if let Some(password_file) = file_appender.clone().password_file {
-                            let ro_contents =
-                                get_file_contents(&file_appender.source).unwrap_or(Vec::new());
-                            let passphrase = get_file_contents(&password_file).unwrap();
-                            if ro_contents.is_empty() {
-                                Vec::new()
-                            } else {
-                                decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
-                            }
-                        } else {
-                            get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
-                        };
-                    if current_ro_content.clone() == rw_contents.clone() {
-                        continue;
-                    }
-
-                    println!("{:?}", current_ro_content);
-                    println!("{:?}", rw_contents);
-
-                    if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
-                        final_rw_content.append(current_ro_content);
-                    }
-                    let uniq_final_rw_content: Vec<Vec<u8>> =
-                        BTreeSet::from_iter(final_rw_content).into_iter().collect();
-                    write_to_file(file_path, uniq_final_rw_content.clone().join(&b'\n'));
-                    let final_ro_content =
-                        if let Some(password_file) = file_appender.clone().password_file {
-                            let passphrase = get_file_contents(&password_file).unwrap();
-                            encrypt(
-                                &uniq_final_rw_content,
-                                String::from_utf8(passphrase).unwrap(),
-                            )
-                        } else {
-                            uniq_final_rw_content.join(&b'\n')
-                        };
-                    write_to_file(&file_appender.source, final_ro_content);
+        let repo = open(git_folder);
+        fetch(&repo);
+        for (file_path, file_appender) in appender.iter() {
+            let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
+            let mut final_rw_content = rw_contents.clone();
+            let current_ro_content = &mut if let Some(password_file) =
+                file_appender.clone().password_file
+            {
+                let ro_contents = get_file_contents(&file_appender.source).unwrap_or(Vec::new());
+                let passphrase = get_file_contents(&password_file).unwrap();
+                if ro_contents.is_empty() {
+                    Vec::new()
+                } else {
+                    decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
                 }
-                let statuses = repo.statuses(None).unwrap();
-
-                for entry in statuses.iter() {
-                    let status = entry.status();
-                    let path = entry.path().unwrap_or_default();
-
-                    println!("File: {}, {:?}", path, status);
-                }
-                let sig = Signature::now("Git-Append", "git@git").unwrap();
-                let obj = repo
-                    .head()
-                    .unwrap()
-                    .resolve()
-                    .unwrap()
-                    .peel(git2::ObjectType::Commit)
-                    .unwrap();
-                let parent_commit = obj
-                    .into_commit()
-                    .map_err(|_| git2::Error::from_str("Couldn't find commit"))
-                    .unwrap();
-                let mut index = repo.index().unwrap();
-                index
-                    .add_all(["."], git2::IndexAddOption::DEFAULT, None)
-                    .unwrap();
-                let oid = index.write_tree().unwrap();
-                let tree = repo.find_tree(oid).unwrap();
-                repo.commit(
-                    Some("HEAD"),
-                    &sig,
-                    &sig,
-                    "message",
-                    &tree,
-                    &[&parent_commit],
-                )
-                .unwrap()
+            } else {
+                get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
+            };
+            if current_ro_content.clone() == rw_contents.clone() {
+                continue;
             }
-            Err(e) => panic!("failed to open: {}", e),
-        };
+
+            println!("{:?}", current_ro_content);
+            println!("{:?}", rw_contents);
+
+            if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
+                final_rw_content.append(current_ro_content);
+            }
+            let uniq_final_rw_content: Vec<Vec<u8>> =
+                BTreeSet::from_iter(final_rw_content).into_iter().collect();
+            write_to_file(file_path, uniq_final_rw_content.clone().join(&b'\n'));
+            let final_ro_content = if let Some(password_file) = file_appender.clone().password_file
+            {
+                let passphrase = get_file_contents(&password_file).unwrap();
+                encrypt(
+                    &uniq_final_rw_content,
+                    String::from_utf8(passphrase).unwrap(),
+                )
+            } else {
+                uniq_final_rw_content.join(&b'\n')
+            };
+            write_to_file(&file_appender.source, final_ro_content);
+        }
+        let statuses = repo.statuses(None).unwrap();
+
+        for entry in statuses.iter() {
+            let status = entry.status();
+            let path = entry.path().unwrap_or_default();
+
+            println!("File: {}, {:?}", path, status.is_index_modified());
+        }
+        let sig = Signature::now("Git-Append", "git@git").unwrap();
+        let obj = repo
+            .head()
+            .unwrap()
+            .resolve()
+            .unwrap()
+            .peel(git2::ObjectType::Commit)
+            .unwrap();
+        let parent_commit = obj
+            .into_commit()
+            .map_err(|_| git2::Error::from_str("Couldn't find commit"))
+            .unwrap();
+        let mut index = repo.index().unwrap();
+        index
+            .add_all(["."], git2::IndexAddOption::DEFAULT, None)
+            .unwrap();
+        let oid = index.write_tree().unwrap();
+        let tree = repo.find_tree(oid).unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            "message",
+            &tree,
+            &[&parent_commit],
+        )
+        .unwrap();
     }
 }
 
