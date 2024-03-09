@@ -25,7 +25,6 @@ fn main() {
 fn main_run(path: String) {
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
-        println!("git pull {:?}", git_folder);
         let repo = open(git_folder);
         fetch(&repo);
         for (file_path, file_appender) in appender.iter() {
