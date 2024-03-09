@@ -69,6 +69,22 @@ fn main_run(path: String) {
                         };
                     write_to_file(&file_appender.source, final_ro_content);
                 }
+                let statuses = repo.statuses(None).unwrap();
+
+                for entry in statuses.iter() {
+                    let status = entry.status();
+                    let path = entry.path().unwrap_or_default();
+
+                    println!("File: {}", path);
+
+                    if status.is_index_new() {
+                        println!("Status: New");
+                    } else if status.is_index_modified() {
+                        println!("Status: Modified");
+                    } else if status.is_index_deleted() {
+                        println!("Status: Deleted");
+                    }
+                }
                 let sig = Signature::now("Git-Append", "git@git").unwrap();
                 let obj = repo
                     .head()
