@@ -30,8 +30,8 @@ fn main_run(path: String) {
                 });
                 for (file_path, file_appender) in appender.iter() {
                     let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
-                    let mut final_rw_content = rw_contents;
-                    let new_rw_content =
+                    let mut final_rw_content = rw_contents.clone();
+                    let current_ro_content =
                         &mut if let Some(password_file) = file_appender.clone().password_file {
                             let ro_contents =
                                 get_file_contents(&file_appender.source).unwrap_or(Vec::new());
@@ -44,8 +44,11 @@ fn main_run(path: String) {
                         } else {
                             get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
                         };
-                    if !final_rw_content.is_empty() && !new_rw_content.is_empty() {
-                        final_rw_content.append(new_rw_content);
+                    if current_ro_content.clone() == rw_contents.clone() {
+                        continue;
+                    }
+                    if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
+                        final_rw_content.append(current_ro_content);
                     }
                     let uniq_final_rw_content: Vec<Vec<u8>> =
                         BTreeSet::from_iter(final_rw_content).into_iter().collect();
