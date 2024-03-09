@@ -61,7 +61,6 @@ fn main_run(path: String) {
                             uniq_final_rw_content.join(&b'\n')
                         };
                     write_to_file(&file_appender.source, final_ro_content);
-                    println!("merge {:?}", file_path);
                 }
                 let sig = Signature::now("Git-Append", "git@git").unwrap();
                 let obj = repo
@@ -81,10 +80,17 @@ fn main_run(path: String) {
                     .unwrap();
                 let oid = index.write_tree().unwrap();
                 let tree = repo.find_tree(oid).unwrap();
-                repo.commit(None, &sig, &sig, "message", &tree, &[&parent_commit])
-                    .unwrap()
+                repo.commit(
+                    Some("HEAD"),
+                    &sig,
+                    &sig,
+                    "message",
+                    &tree,
+                    &[&parent_commit],
+                )
+                .unwrap()
             }
-            Err(e) => panic!("fai led to open: {}", e),
+            Err(e) => panic!("failed to open: {}", e),
         };
     }
 }

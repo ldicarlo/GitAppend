@@ -7,7 +7,7 @@ pub fn encrypt(plaintext: &Vec<Vec<u8>>, passphrase: String) -> Vec<u8> {
 
     let mut encrypted = vec![];
     let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
-    writer.write_all(&plaintext.concat()).unwrap();
+    writer.write_all(&plaintext.join(&b'\n')).unwrap();
     writer.finish().unwrap();
     encrypted
 }
@@ -22,7 +22,6 @@ pub fn decrypt(encrypted: Vec<u8>, passphrase: String) -> Vec<Vec<u8>> {
         .decrypt(&Secret::new(passphrase.to_owned()), None)
         .unwrap();
     let decrypted = BufReader::new(reader).lines();
-
     decrypted
         .into_iter()
         .map(|l| l.unwrap().as_bytes().into())
