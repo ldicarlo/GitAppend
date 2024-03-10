@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use git2::{Repository, Signature};
 
 pub fn open(path: &String) -> Repository {
@@ -42,3 +44,7 @@ pub fn signature() -> Signature<'static> {
 }
 
 pub fn status() {}
+
+pub fn add(repo: &Repository, path: String) {
+    repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
+}

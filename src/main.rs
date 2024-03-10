@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use git::{commit, signature};
+use git::{add, commit, signature};
 use std::{
     collections::BTreeSet,
     fs::{self, File},
@@ -48,6 +48,7 @@ fn main_run(path: String) {
                 continue;
             }
             needs_commit = true;
+            add(&repo, file_appender.source.clone());
             if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
                 final_rw_content.append(current_ro_content);
             }
