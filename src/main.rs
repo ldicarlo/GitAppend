@@ -65,7 +65,7 @@ fn main_run(path: String) {
                 uniq_final_rw_content.join(&b'\n')
             };
             write_to_file(&file_appender.source, final_ro_content);
-            add(&repo, file_appender.source.clone());
+            // add(&repo, file_appender.source.clone());
         }
         if needs_commit {
             let statuses = repo.statuses(None).unwrap();
