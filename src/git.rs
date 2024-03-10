@@ -19,9 +19,9 @@ pub fn commit(repo: &Repository, sign: &Signature) {
         .map_err(|_| git2::Error::from_str("Couldn't find commit"))
         .unwrap();
     let mut index = repo.index().unwrap();
-    index
-        .add_all(["."], git2::IndexAddOption::DEFAULT, None)
-        .unwrap();
+    // index
+    //     .add_all(["."], git2::IndexAddOption::DEFAULT, None)
+    //     .unwrap();
     let oid = index.write_tree().unwrap();
     let tree = repo.find_tree(oid).unwrap();
     repo.commit(
@@ -46,5 +46,5 @@ pub fn signature() -> Signature<'static> {
 pub fn status() {}
 
 pub fn add(repo: &Repository, path: String) {
-    // repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
+    repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
 }
