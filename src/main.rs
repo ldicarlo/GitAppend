@@ -65,7 +65,7 @@ fn main_run(path: String) {
                 uniq_final_rw_content.join(&b'\n')
             };
             write_to_file(&file_appender.source, final_ro_content);
-            // add(&repo, file_appender.source.clone());
+            add(&repo, file_appender.source.clone());
         }
         if needs_commit {
             let statuses = repo.statuses(None).unwrap();
@@ -82,7 +82,13 @@ fn main_run(path: String) {
     }
 }
 
-fn write_to_file(path: &String, content: Vec<u8>) {
+fn write_to_file(path: &String, mut content: Vec<u8>) {
+    if let Some(char) = content.last() {
+        if char != &b'\n' {
+            content.push(b'\n');
+        }
+    }
+
     let mut file = File::create(path).unwrap();
     file.write_all(&content).unwrap();
 }
