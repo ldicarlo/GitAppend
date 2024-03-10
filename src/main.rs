@@ -53,18 +53,16 @@ fn main_run(path: String) {
             }
             let uniq_final_rw_content: Vec<Vec<u8>> =
                 BTreeSet::from_iter(final_rw_content).into_iter().collect();
-            write_to_file(file_path, uniq_final_rw_content.clone().join(&b'\n'));
+            let end_line_content = last_char(uniq_final_rw_content.join(&b'\n'));
+            write_to_file(file_path, &end_line_content);
             let final_ro_content = if let Some(password_file) = file_appender.clone().password_file
             {
                 let passphrase = get_file_contents(&password_file).unwrap();
-                encrypt(
-                    &uniq_final_rw_content,
-                    String::from_utf8(passphrase).unwrap(),
-                )
+                encrypt(&end_line_content, String::from_utf8(passphrase).unwrap())
             } else {
-                uniq_final_rw_content.join(&b'\n')
+                end_line_content
             };
-            write_to_file(&file_appender.source, last_char(final_ro_content));
+            write_to_file(&file_appender.source, &final_ro_content);
             add(&repo, file_appender.source.clone());
         }
         if needs_commit {
@@ -92,7 +90,7 @@ fn last_char(mut content: Vec<u8>) -> Vec<u8> {
     content
 }
 
-fn write_to_file(path: &String, content: Vec<u8>) {
+fn write_to_file(path: &String, content: &Vec<u8>) {
     let mut file = File::create(path).unwrap();
     file.write_all(&content).unwrap();
 }
