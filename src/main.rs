@@ -48,7 +48,6 @@ fn main_run(path: String) {
                 continue;
             }
             needs_commit = true;
-            add(&repo, file_appender.source.clone());
             if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
                 final_rw_content.append(current_ro_content);
             }
@@ -66,6 +65,7 @@ fn main_run(path: String) {
                 uniq_final_rw_content.join(&b'\n')
             };
             write_to_file(&file_appender.source, final_ro_content);
+            add(&repo, file_appender.source.clone());
         }
         if needs_commit {
             let statuses = repo.statuses(None).unwrap();

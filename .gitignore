@@ -3,4 +3,4 @@ target
 .direnv
 result
 passwords
-
+plaintext_files
