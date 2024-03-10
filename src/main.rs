@@ -84,7 +84,6 @@ fn last_char(mut content: Vec<u8>) -> Vec<u8> {
     if let Some(char) = content.last() {
         if char != &b'\n' {
             content.push(b'\n');
-            println!("{:?}", content);
         }
     }
     content
