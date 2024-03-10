@@ -16,7 +16,25 @@
           };
           lib = import lib { };
           craneLib = crane.lib.${system};
-          code = pkgs.callPackage ./. { inherit nixpkgs system; };
+
+          commonArgs = {
+            src = lib.cleanSourceWith {
+              src = ./.;
+              filter = path: type:
+                (lib.hasInfix "tests/" path) ||
+                (craneLib.filterCargoSources path type)
+              ;
+            };
+            strictDeps = true;
+            buildInputs = with pkgs; [ pkg-config openssl ];
+          };
+          cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+            pname = "mycrate-deps";
+          });
+
+          git-append = craneLib.buildPackage (commonArgs // {
+            inherit cargoArtifacts;
+          });
         in
         rec {
           devShells.default = pkgs.mkShell {
@@ -29,33 +47,10 @@
             ];
           };
 
+          #     checks = { inherit git-append; };
           packages =
-            rec {
+            {
               default = git-append;
-              git-append =
-                let
-                  src = lib.cleanSourceWith {
-                    src = ./.;
-                    filter = path: type:
-                      (lib.hasInfix "/tests/" path) ||
-                      (craneLib.filterCargoSources path type)
-                    ;
-                  };
-                  commonArgs = {
-                    inherit src;
-                    # strictDeps = true;
-
-                    buildInputs = with pkgs; [ pkg-config openssl ];
-                  };
-
-                  cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { });
-                in
-
-                craneLib.buildPackage (commonArgs // {
-                  name = "git-append";
-                  inherit cargoArtifacts;
-                  doCheck = true;
-                });
             };
 
 
