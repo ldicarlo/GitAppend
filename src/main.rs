@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use git2::Signature;
+use git::{commit, signature};
 use std::{
     collections::BTreeSet,
     fs::{self, File},
@@ -27,6 +27,7 @@ fn main_run(path: String) {
     for (git_folder, appender) in configs.appenders.iter() {
         let repo = open(git_folder);
         fetch(&repo);
+        let mut needs_commit = false;
         for (file_path, file_appender) in appender.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let mut final_rw_content = rw_contents.clone();
@@ -46,10 +47,7 @@ fn main_run(path: String) {
             if current_ro_content.clone() == rw_contents.clone() {
                 continue;
             }
-
-            println!("{:?}", current_ro_content);
-            println!("{:?}", rw_contents);
-
+            needs_commit = true;
             if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
                 final_rw_content.append(current_ro_content);
             }
@@ -68,41 +66,18 @@ fn main_run(path: String) {
             };
             write_to_file(&file_appender.source, final_ro_content);
         }
-        let statuses = repo.statuses(None).unwrap();
+        if needs_commit {
+            let statuses = repo.statuses(None).unwrap();
 
-        for entry in statuses.iter() {
-            let status = entry.status();
-            let path = entry.path().unwrap_or_default();
+            for entry in statuses.iter() {
+                let status = entry.status();
+                let path = entry.path().unwrap_or_default();
 
-            println!("File: {}, {:?}", path, status.is_index_modified());
+                println!("File: {}, {:?}", path, status.is_index_modified());
+            }
+            let sign = signature();
+            commit(&repo, &sign);
         }
-        let sig = Signature::now("Git-Append", "git@git").unwrap();
-        let obj = repo
-            .head()
-            .unwrap()
-            .resolve()
-            .unwrap()
-            .peel(git2::ObjectType::Commit)
-            .unwrap();
-        let parent_commit = obj
-            .into_commit()
-            .map_err(|_| git2::Error::from_str("Couldn't find commit"))
-            .unwrap();
-        let mut index = repo.index().unwrap();
-        index
-            .add_all(["."], git2::IndexAddOption::DEFAULT, None)
-            .unwrap();
-        let oid = index.write_tree().unwrap();
-        let tree = repo.find_tree(oid).unwrap();
-        repo.commit(
-            Some("HEAD"),
-            &sig,
-            &sig,
-            "message",
-            &tree,
-            &[&parent_commit],
-        )
-        .unwrap();
     }
 }
 
