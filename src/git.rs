@@ -46,5 +46,5 @@ pub fn signature() -> Signature<'static> {
 pub fn status() {}
 
 pub fn add(repo: &Repository, path: String) {
-    repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
+    // repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
 }
