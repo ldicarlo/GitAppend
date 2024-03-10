@@ -64,7 +64,7 @@ fn main_run(path: String) {
             } else {
                 uniq_final_rw_content.join(&b'\n')
             };
-            write_to_file(&file_appender.source, last_char(final_ro_content));
+            write_to_file(&file_appender.source, final_ro_content); //last_char(final_ro_content));
             add(&repo, file_appender.source.clone());
         }
         if needs_commit {
