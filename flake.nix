@@ -12,9 +12,8 @@
         let
           pkgs = import nixpkgs {
             inherit system;
-            config.allowUnfree = true;
           };
-          lib = import lib { };
+          lib = pkgs.lib;
           craneLib = crane.lib.${system};
 
           commonArgs = {
@@ -25,14 +24,14 @@
                 (craneLib.filterCargoSources path type)
               ;
             };
-            strictDeps = true;
             buildInputs = with pkgs; [ pkg-config openssl ];
           };
           cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-            pname = "mycrate-deps";
+            pname = "git-append";
           });
 
           git-append = craneLib.buildPackage (commonArgs // {
+            pname = "git-append";
             inherit cargoArtifacts;
           });
         in
@@ -47,7 +46,6 @@
             ];
           };
 
-          #     checks = { inherit git-append; };
           packages =
             {
               default = git-append;
