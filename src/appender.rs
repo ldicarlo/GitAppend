@@ -30,11 +30,28 @@ pub mod tests {
     fn test_content() {
         assert_eq!(None, append(Vec::new(), Vec::new()));
     }
+
     #[test]
     fn test_content_1() {
         assert_eq!(
             Some(vec![b'a', b'\n', b'b', b'c', b'\n']),
             append(vec![vec![b'a'], vec![b'b', b'c',]], vec![vec![b'b', b'c']])
+        );
+    }
+
+    #[test]
+    fn test_content_2() {
+        assert_eq!(
+            Some(vec![b'b', b'c', b'\n']),
+            append(vec![], vec![vec![b'b', b'c']])
+        );
+    }
+
+    #[test]
+    fn test_content_3() {
+        assert_eq!(
+            Some(vec![b'a', b'\n', b'b', b'c', b'\n']),
+            append(vec![vec![b'a'], vec![b'b', b'c',]], vec![])
         );
     }
 }

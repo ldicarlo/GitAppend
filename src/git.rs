@@ -48,7 +48,7 @@ pub fn add(repo: &Repository, path: String) {
     repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
 }
 
-pub fn push(repo: &Repository) {
+pub fn _push(_repo: &Repository) {
     // repo.r emot
     // repo.remote(name, url).unwrap().push(refspecs, opts)
 }

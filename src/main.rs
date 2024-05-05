@@ -1,5 +1,6 @@
 use appender::append;
 use clap::{Parser, Subcommand};
+use config::Appender;
 use git::{add, commit, signature};
 use std::{
     fs::{self, File},
@@ -19,7 +20,29 @@ fn main() {
 
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
+        Commands::Decrypt {
+            config_path,
+            file,
+            repository_location,
+        } => decrypt_file(config_path, repository_location, file),
     }
+}
+
+fn decrypt_file(path: String, repository_location: String, file: String) {
+    let configs = parse_config(path);
+    let (_, appenders) = configs
+        .appenders
+        .iter()
+        .find(|(k, _)| **k == repository_location)
+        .expect("Appender not found in config");
+    let (_, file_appender) = appenders
+        .iter()
+        .find(|(_, s)| s.source == file)
+        .expect("File not in config");
+    println!(
+        "{}",
+        String::from_utf8(get_from_appender(file_appender).join(&b'\n')).unwrap()
+    );
 }
 
 fn main_run(path: String) {
@@ -31,19 +54,7 @@ fn main_run(path: String) {
         for (file_path, file_appender) in appender.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let final_rw_content = rw_contents.clone();
-            let current_ro_content = &mut if let Some(password_file) =
-                file_appender.clone().password_file
-            {
-                let ro_contents = get_file_contents(&file_appender.source).unwrap_or(Vec::new());
-                let passphrase = get_file_contents(&password_file).unwrap();
-                if ro_contents.is_empty() {
-                    Vec::new()
-                } else {
-                    decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
-                }
-            } else {
-                get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
-            };
+            let current_ro_content = &mut get_from_appender(file_appender);
 
             let result = append(current_ro_content.clone(), final_rw_content.clone());
 
@@ -74,6 +85,20 @@ fn main_run(path: String) {
             let sign = signature();
             commit(&repo, &sign);
         }
+    }
+}
+
+fn get_from_appender(file_appender: &Appender) -> Vec<Vec<u8>> {
+    if let Some(password_file) = file_appender.clone().password_file {
+        let ro_contents = get_file_contents(&file_appender.source).unwrap_or(Vec::new());
+        let passphrase = get_file_contents(&password_file).unwrap();
+        if ro_contents.is_empty() {
+            Vec::new()
+        } else {
+            decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
+        }
+    } else {
+        get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
     }
 }
 
@@ -117,6 +142,20 @@ enum Commands {
         /// Configuration file location
         #[arg(short, long)]
         config_path: String,
+    },
+    #[command(arg_required_else_help = true)]
+    Decrypt {
+        /// Configuration file location
+        #[arg(short, long)]
+        config_path: String,
+
+        /// Repository location
+        #[arg(short, long)]
+        repository_location: String,
+
+        /// File to decrypt (for testing/debugging purposes)
+        #[arg(short, long)]
+        file: String,
     },
 }
 
