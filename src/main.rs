@@ -2,7 +2,6 @@ use appender::append;
 use clap::{Parser, Subcommand};
 use git::{add, commit, signature};
 use std::{
-    collections::BTreeSet,
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
 };
@@ -61,8 +60,6 @@ fn main_run(path: String) {
                     };
                 write_to_file(&file_appender.source, &final_ro_content);
                 add(&repo, file_appender.source.clone());
-            } else {
-                continue;
             }
         }
         if needs_commit {
