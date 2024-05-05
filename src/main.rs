@@ -1,3 +1,4 @@
+use appender::append;
 use clap::{Parser, Subcommand};
 use git::{add, commit, signature};
 use std::{
@@ -5,7 +6,7 @@ use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
 };
-
+mod appender;
 use crate::{
     age::{decrypt, encrypt},
     git::{fetch, open},
@@ -30,7 +31,7 @@ fn main_run(path: String) {
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
-            let mut final_rw_content = rw_contents.clone();
+            let final_rw_content = rw_contents.clone();
             let current_ro_content = &mut if let Some(password_file) =
                 file_appender.clone().password_file
             {
@@ -44,26 +45,25 @@ fn main_run(path: String) {
             } else {
                 get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
             };
-            if current_ro_content.clone() == rw_contents.clone() {
+
+            let result = append(current_ro_content.clone(), final_rw_content.clone());
+
+            if let Some(content_to_encrypt) = result {
+                needs_commit = true;
+
+                // !  write_to_file(file_path, &end_line_content);
+                let final_ro_content =
+                    if let Some(password_file) = file_appender.clone().password_file {
+                        let passphrase = get_file_contents(&password_file).unwrap();
+                        encrypt(&content_to_encrypt, String::from_utf8(passphrase).unwrap())
+                    } else {
+                        content_to_encrypt
+                    };
+                write_to_file(&file_appender.source, &final_ro_content);
+                add(&repo, file_appender.source.clone());
+            } else {
                 continue;
             }
-            needs_commit = true;
-            if !final_rw_content.is_empty() && !current_ro_content.is_empty() {
-                final_rw_content.append(current_ro_content);
-            }
-            let uniq_final_rw_content: Vec<Vec<u8>> =
-                BTreeSet::from_iter(final_rw_content).into_iter().collect();
-            let end_line_content = last_char(uniq_final_rw_content.join(&b'\n'));
-            write_to_file(file_path, &end_line_content);
-            let final_ro_content = if let Some(password_file) = file_appender.clone().password_file
-            {
-                let passphrase = get_file_contents(&password_file).unwrap();
-                encrypt(&end_line_content, String::from_utf8(passphrase).unwrap())
-            } else {
-                end_line_content
-            };
-            write_to_file(&file_appender.source, &final_ro_content);
-            add(&repo, file_appender.source.clone());
         }
         if needs_commit {
             let statuses = repo.statuses(None).unwrap();
@@ -78,15 +78,6 @@ fn main_run(path: String) {
             commit(&repo, &sign);
         }
     }
-}
-
-fn last_char(mut content: Vec<u8>) -> Vec<u8> {
-    if let Some(char) = content.last() {
-        if char != &b'\n' {
-            content.push(b'\n');
-        }
-    }
-    content
 }
 
 fn write_to_file(path: &String, content: &Vec<u8>) {
