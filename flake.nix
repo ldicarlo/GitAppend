@@ -61,7 +61,10 @@
             {
               options.services.git-append = {
                 enable = mkEnableOption "Enable git-append service";
-                envFile = mkOption { type = types.str; };
+                configFile = mkOption {
+                  type = types.path;
+                  description = "The location of the config file. Check the doc for the details.";
+                };
               };
               config = mkIf cfg.enable
                 {
@@ -70,7 +73,7 @@
                     wantedBy = [ "multi-user.target" ];
                     environment = { };
                     serviceConfig = {
-                      ExecStart = "${git-append}/bin/git-append";
+                      ExecStart = "${git-append}/bin/git-append --config_path=${configFile}";
                       Restart = "on-failure";
                       RestartSec = "10s";
                     };
