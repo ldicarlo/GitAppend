@@ -5,12 +5,10 @@ pub fn append(remote_file: Vec<Vec<u8>>, local_file: Vec<Vec<u8>>) -> Option<Vec
         return None;
     }
 
-    let mut r = local_file.clone();
+    let mut r = remote_file.clone();
 
-    if !local_file.is_empty() && !remote_file.is_empty() {
-        r.append(&mut remote_file.clone());
-    }
-    let uniq_final_rw_content: Vec<Vec<u8>> = BTreeSet::from_iter(local_file).into_iter().collect();
+    r.append(&mut local_file.clone());
+    let uniq_final_rw_content: Vec<Vec<u8>> = BTreeSet::from_iter(r).into_iter().collect();
     let end_line_content = last_char(uniq_final_rw_content.join(&b'\n'));
     Some(end_line_content)
 }
@@ -31,5 +29,12 @@ pub mod tests {
     #[test]
     fn test_content() {
         assert_eq!(None, append(Vec::new(), Vec::new()));
+    }
+    #[test]
+    fn test_content_1() {
+        assert_eq!(
+            Some(vec![b'a', b'\n', b'b', b'c', b'\n']),
+            append(vec![vec![b'a'], vec![b'b', b'c',]], vec![vec![b'b', b'c']])
+        );
     }
 }

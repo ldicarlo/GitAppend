@@ -51,7 +51,7 @@ fn main_run(path: String) {
             if let Some(content_to_encrypt) = result {
                 needs_commit = true;
 
-                // !  write_to_file(file_path, &end_line_content);
+                write_to_file(file_path, &content_to_encrypt);
                 let final_ro_content =
                     if let Some(password_file) = file_appender.clone().password_file {
                         let passphrase = get_file_contents(&password_file).unwrap();
