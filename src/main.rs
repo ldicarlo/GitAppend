@@ -1,7 +1,7 @@
 use appender::append;
 use clap::{Parser, Subcommand};
 use config::Appender;
-use git::{add, commit, signature};
+use git::{commit, signature};
 use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
@@ -73,7 +73,7 @@ fn main_run(path: String) {
                     &(git_folder.to_owned() + &"/" + &file_appender.source),
                     &final_ro_content,
                 );
-                add(&repo, file_appender.source.clone());
+                //add(&repo, file_appender.source.clone());
             }
         }
         if needs_commit {

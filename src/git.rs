@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use git2::{Repository, Signature};
+use git2::{IndexAddOption, Repository, Signature};
 
 pub fn open(path: &String) -> Repository {
     Repository::open(path).unwrap()
@@ -19,6 +19,7 @@ pub fn commit(repo: &Repository, sign: &Signature) {
         .map_err(|_| git2::Error::from_str("Couldn't find commit"))
         .unwrap();
     let mut index = repo.index().unwrap();
+    index.add_all(["*"].iter(), IndexAddOption::all(), None);
     let oid = index.write_tree().unwrap();
     let tree = repo.find_tree(oid).unwrap();
     repo.commit(
@@ -42,10 +43,6 @@ pub fn fetch(repo: &Repository) {
 
 pub fn signature() -> Signature<'static> {
     Signature::now("Git-Append", "git-append@git").unwrap()
-}
-
-pub fn add(repo: &Repository, path: String) {
-    repo.index().unwrap().add_path(&Path::new(&path)).unwrap();
 }
 
 pub fn _push(_repo: &Repository) {
