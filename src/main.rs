@@ -48,7 +48,7 @@ fn decrypt_file(path: String, repository_location: String, file: String) {
 fn main_run(path: String) {
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
-        let repo = open(git_folder);
+        let repo = open(&format!("{}/.git", git_folder));
         fetch(&repo);
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.iter() {
@@ -69,7 +69,10 @@ fn main_run(path: String) {
                     } else {
                         content_to_encrypt
                     };
-                write_to_file(&file_appender.source, &final_ro_content);
+                write_to_file(
+                    &(git_folder.to_owned() + &"/" + &file_appender.source),
+                    &final_ro_content,
+                );
                 add(&repo, file_appender.source.clone());
             }
         }
@@ -103,6 +106,7 @@ fn get_from_appender(file_appender: &Appender) -> Vec<Vec<u8>> {
 }
 
 fn write_to_file(path: &String, content: &Vec<u8>) {
+    println!("writing to {}", path);
     let mut file = File::create(path).unwrap();
     file.write_all(&content).unwrap();
 }

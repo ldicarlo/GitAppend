@@ -49,6 +49,6 @@ pub fn add(repo: &Repository, path: String) {
 }
 
 pub fn _push(_repo: &Repository) {
-    // repo.r emot
+    // repo.remot
     // repo.remote(name, url).unwrap().push(refspecs, opts)
 }
