@@ -1,7 +1,7 @@
 use appender::append;
 use clap::{Parser, Subcommand};
 use config::Appender;
-use git::{commit, signature};
+use git::{commit_and_push, signature};
 use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
@@ -48,6 +48,7 @@ fn decrypt_file(path: String, repository_location: String, file: String) {
 fn main_run(path: String) {
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
+        let mut files = Vec::new();
         let repo = open(&format!("{}/.git", git_folder));
         fetch(&repo);
         let mut needs_commit = false;
@@ -73,7 +74,7 @@ fn main_run(path: String) {
                     &(git_folder.to_owned() + &"/" + &file_appender.source),
                     &final_ro_content,
                 );
-                //add(&repo, file_appender.source.clone());
+                files.push(file_appender.source.clone());
             }
         }
         if needs_commit {
@@ -86,7 +87,7 @@ fn main_run(path: String) {
                 println!("File: {}, {:?}", path, status.is_index_modified());
             }
             let sign = signature();
-            commit(&repo, &sign);
+            commit_and_push(&repo, &sign, files);
         }
     }
 }

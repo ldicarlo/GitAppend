@@ -4,3 +4,4 @@ target
 result
 passwords
 plaintext_files
+*.bak
