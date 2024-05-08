@@ -36,6 +36,7 @@ fn decrypt_file(path: String, repository_location: String, file: String) {
         .find(|(k, _)| **k == repository_location)
         .expect("Appender not found in config");
     let (_, file_appender) = appenders
+        .links
         .iter()
         .find(|(_, s)| s.source == file)
         .expect("File not in config");
@@ -52,7 +53,7 @@ fn main_run(path: String) {
         let repo = open(&format!("{}/.git", git_folder));
         fetch(&repo);
         let mut needs_commit = false;
-        for (file_path, file_appender) in appender.iter() {
+        for (file_path, file_appender) in appender.links.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let final_rw_content = rw_contents.clone();
             let current_ro_content = &mut get_from_appender(file_appender);
@@ -167,7 +168,7 @@ enum Commands {
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        config::{self, Appender},
+        config::{self, Appender, GitAppender},
         parse_config,
     };
 
@@ -178,24 +179,27 @@ pub mod tests {
                 settings: "hello".to_string(),
                 appenders: vec![(
                     "/home/someone/folder/.git".to_string(),
-                    vec![
-                        (
-                            "plaintext_file".to_string(),
-                            Appender {
-                                source: "file_in_git".to_string(),
-                                password_file: None,
-                            }
-                        ),
-                        (
-                            "other_plaintext_file".to_string(),
-                            Appender {
-                                source: "other_file_in_git".to_string(),
-                                password_file: Some(String::from("./test")),
-                            }
-                        )
-                    ]
-                    .into_iter()
-                    .collect()
+                    GitAppender {
+                        git_config: None,
+                        links: vec![
+                            (
+                                "plaintext_file".to_string(),
+                                Appender {
+                                    source: "file_in_git".to_string(),
+                                    password_file: None,
+                                }
+                            ),
+                            (
+                                "other_plaintext_file".to_string(),
+                                Appender {
+                                    source: "other_file_in_git".to_string(),
+                                    password_file: Some(String::from("./test")),
+                                }
+                            )
+                        ]
+                        .into_iter()
+                        .collect()
+                    }
                 )]
                 .into_iter()
                 .collect()
