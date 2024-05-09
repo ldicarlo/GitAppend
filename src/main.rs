@@ -51,6 +51,11 @@ fn main_run(path: String) {
     for (git_folder, appender) in configs.appenders.iter() {
         let mut files = Vec::new();
         let repo = open(&format!("{}/.git", git_folder));
+        // let c = repo.config().unwrap();
+        // c.entries(None)
+        //     .unwrap()
+        //     .for_each(|d| println!("{:?}:{:?}", d.name(), d.value()))
+        //     .unwrap();
         fetch(&repo);
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.links.iter() {

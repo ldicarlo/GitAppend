@@ -1,6 +1,9 @@
-use std::path::Path;
+use std::{env, path::Path};
 
-use git2::{Direction, IndexAddOption, Oid, PushOptions, Refspecs, Repository, Signature};
+use git2::{
+    Cred, Direction, FetchOptions, IndexAddOption, Oid, PushOptions, Refspecs, RemoteCallbacks,
+    Repository, Signature,
+};
 
 pub fn open(path: &String) -> Repository {
     Repository::open(path).unwrap()
@@ -42,15 +45,33 @@ fn commit(repo: &Repository, sign: &Signature, files: Vec<String>) -> Oid {
         &[&parent_commit],
     )
     .unwrap()
-    // println!("result: {:?}", res);
 }
 
 pub fn fetch(repo: &Repository) {
-    repo.fetchhead_foreach(|name, _, _, _| {
-        println!("{}", name);
+    let mut remote = repo.find_remote("http-origin").unwrap();
+    let mut fetch_options = FetchOptions::default();
+    fetch_options.remote_callbacks(create_callbacks());
+    remote
+        .connect_auth(Direction::Fetch, Some(create_callbacks()), None)
+        .unwrap();
+    repo.remote_add_fetch("origin", "refs/heads/master:refs/heads/master")
+        .unwrap();
+    remote
+        .fetch(&["master"], Some(&mut fetch_options), None)
+        .unwrap();
+    repo.fetchhead_foreach(|name, _, _, merge| {
+        println!("{} : {}", name, merge);
+        if merge {
+            return true;
+        }
         true
     })
     .unwrap()
+}
+
+pub fn pull(repo: &Repository) {
+    fetch(repo);
+    // repo.merge(annotated_commits, merge_opts, checkout_opts)
 }
 
 pub fn signature() -> Signature<'static> {
@@ -58,21 +79,30 @@ pub fn signature() -> Signature<'static> {
 }
 
 fn push(repo: &Repository) {
-    let mut remote = repo.find_remote("origin").unwrap();
+    let mut remote = repo.find_remote("http-origin").unwrap();
+    println!("URL: {:?}", remote.url());
     repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
         .unwrap();
 
-    let mut remote_callbacks = git2::RemoteCallbacks::new();
-
+    remote
+        .connect_auth(Direction::Push, Some(create_callbacks()), None)
+        .unwrap();
+    repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
+        .unwrap();
     let mut push_options = PushOptions::default();
-    push_options.remote_callbacks(remote_callbacks);
+    let callbacks = create_callbacks();
+    push_options.remote_callbacks(callbacks);
 
-    println!("push url: {:?} {:?}", remote.name(), remote.pushurl(),);
-    remote.connect(Direction::Push).unwrap();
     remote
         .push(
             &["refs/heads/master:refs/heads/master"],
             Some(&mut push_options),
         )
         .unwrap();
+}
+
+fn create_callbacks<'a>() -> RemoteCallbacks<'a> {
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(|_str, _str_opt, _cred_type| Cred::userpass_plaintext("", ""));
+    callbacks
 }
