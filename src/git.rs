@@ -101,8 +101,8 @@ fn push(repo: &Repository) {
         .unwrap();
 }
 
-fn create_callbacks<'a>() -> RemoteCallbacks<'a> {
+fn create_callbacks<'a>(username: String, token: String) -> RemoteCallbacks<'a> {
     let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(|_str, _str_opt, _cred_type| Cred::userpass_plaintext("", ""));
+    callbacks.credentials(|_str, _str_opt, _cred_type| Cred::userpass_plaintext(&username, &token));
     callbacks
 }
