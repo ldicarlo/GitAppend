@@ -1,6 +1,6 @@
 use appender::append;
 use clap::{Parser, Subcommand};
-use config::{Appender, GitConfig};
+use config::Appender;
 use git::{commit_and_push, signature};
 use std::{
     fs::{self, File},
@@ -56,19 +56,7 @@ fn main_run(path: String) {
         //     .unwrap()
         //     .for_each(|d| println!("{:?}:{:?}", d.name(), d.value()))
         //     .unwrap();
-        let credentials = appender.git_config.clone().map(
-            |GitConfig {
-                 username,
-                 token_file,
-             }| {
-                (
-                    username,
-                    String::from_utf8(get_file_contents_strip_final_end_line(&token_file).unwrap())
-                        .unwrap(),
-                )
-            },
-        );
-        fetch(&repo, credentials.clone());
+        fetch(&repo);
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.links.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
@@ -105,7 +93,7 @@ fn main_run(path: String) {
                 println!("File: {}, {:?}", path, status.is_index_modified());
             }
             let sign = signature();
-            commit_and_push(&repo, credentials, &sign, files);
+            commit_and_push(&repo, &sign, files);
         }
     }
 }
