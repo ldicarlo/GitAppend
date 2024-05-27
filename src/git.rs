@@ -1,20 +1,23 @@
-use std::{env, path::Path};
-
 use git2::{
-    Cred, Direction, FetchOptions, IndexAddOption, Oid, PushOptions, Refspecs, RemoteCallbacks,
-    Repository, Signature,
+    Cred, Direction, FetchOptions, IndexAddOption, Oid, PushOptions, RemoteCallbacks, Repository,
+    Signature,
 };
 
 pub fn open(path: &String) -> Repository {
     Repository::open(path).unwrap()
 }
 
-pub fn commit_and_push(repo: &Repository, sign: &Signature, files: Vec<String>) {
+pub fn commit_and_push(
+    repo: &Repository,
+    credentials: Option<(String, String)>,
+    sign: &Signature,
+    files: Vec<String>,
+) {
     let _oid = commit(repo, sign, files);
-    push(repo);
+    push(repo, credentials);
 }
 
-fn commit(repo: &Repository, sign: &Signature, files: Vec<String>) -> Oid {
+fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
     //  println!("{:?}", files);
     let parent_commit = repo
         .head()
@@ -47,12 +50,13 @@ fn commit(repo: &Repository, sign: &Signature, files: Vec<String>) -> Oid {
     .unwrap()
 }
 
-pub fn fetch(repo: &Repository) {
+pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
     let mut remote = repo.find_remote("http-origin").unwrap();
     let mut fetch_options = FetchOptions::default();
-    fetch_options.remote_callbacks(create_callbacks());
+    fetch_options.remote_callbacks(create_callbacks(credentials.clone()));
+    println!("{:?}", credentials);
     remote
-        .connect_auth(Direction::Fetch, Some(create_callbacks()), None)
+        .connect_auth(Direction::Fetch, Some(create_callbacks(credentials)), None)
         .unwrap();
     repo.remote_add_fetch("origin", "refs/heads/master:refs/heads/master")
         .unwrap();
@@ -69,8 +73,8 @@ pub fn fetch(repo: &Repository) {
     .unwrap()
 }
 
-pub fn pull(repo: &Repository) {
-    fetch(repo);
+pub fn pull(repo: &Repository, credentials: Option<(String, String)>) {
+    fetch(repo, credentials);
     // repo.merge(annotated_commits, merge_opts, checkout_opts)
 }
 
@@ -78,19 +82,23 @@ pub fn signature() -> Signature<'static> {
     Signature::now("Git-Append", "git-append@git").unwrap()
 }
 
-fn push(repo: &Repository) {
+fn push(repo: &Repository, credentials: Option<(String, String)>) {
     let mut remote = repo.find_remote("http-origin").unwrap();
     println!("URL: {:?}", remote.url());
     repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
         .unwrap();
 
     remote
-        .connect_auth(Direction::Push, Some(create_callbacks()), None)
+        .connect_auth(
+            Direction::Push,
+            Some(create_callbacks(credentials.clone())),
+            None,
+        )
         .unwrap();
     repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
         .unwrap();
     let mut push_options = PushOptions::default();
-    let callbacks = create_callbacks();
+    let callbacks = create_callbacks(credentials.clone());
     push_options.remote_callbacks(callbacks);
 
     remote
@@ -101,8 +109,17 @@ fn push(repo: &Repository) {
         .unwrap();
 }
 
-fn create_callbacks<'a>(username: String, token: String) -> RemoteCallbacks<'a> {
+fn create_callbacks<'a>(credentials: Option<(String, String)>) -> RemoteCallbacks<'a> {
+    if let Some((username, token)) = credentials.clone() {
+        create_callbacks_with_creds(username, token)
+    } else {
+        RemoteCallbacks::new()
+    }
+}
+
+fn create_callbacks_with_creds<'a>(username: String, token: String) -> RemoteCallbacks<'a> {
     let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(|_str, _str_opt, _cred_type| Cred::userpass_plaintext(&username, &token));
+    callbacks
+        .credentials(move |_str, _str_opt, _cred_type| Cred::userpass_plaintext(&username, &token));
     callbacks
 }
