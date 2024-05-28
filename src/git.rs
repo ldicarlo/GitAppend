@@ -18,7 +18,6 @@ pub fn commit_and_push(
 }
 
 fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
-    //  println!("{:?}", files);
     let parent_commit = repo
         .head()
         .unwrap()
@@ -29,16 +28,15 @@ fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
         .into_commit()
         .unwrap();
 
-    // println!("parent: {:?}", parent_commit);
     let mut index = repo.index().unwrap();
     index
         .add_all(["*"].iter(), IndexAddOption::FORCE, None)
         .unwrap();
     let oid = index.write_tree().unwrap();
-    // println!("oid: {:?}", oid);
+    log::debug!("oid: {:?}", oid);
     index.write().unwrap();
     let tree = repo.find_tree(oid).unwrap();
-    println!("tree: {:?}", tree);
+    log::debug!("tree: {:?}", tree);
     repo.commit(
         Some("HEAD"),
         &sign,
@@ -54,7 +52,7 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
     let mut remote = repo.find_remote("http-origin").unwrap();
     let mut fetch_options = FetchOptions::default();
     fetch_options.remote_callbacks(create_callbacks(credentials.clone()));
-    println!("{:?}", credentials);
+    log::debug!("{:?}", credentials);
     remote
         .connect_auth(Direction::Fetch, Some(create_callbacks(credentials)), None)
         .unwrap();
@@ -64,7 +62,7 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
         .fetch(&["master"], Some(&mut fetch_options), None)
         .unwrap();
     repo.fetchhead_foreach(|name, _, _, merge| {
-        println!("{} : {}", name, merge);
+        log::debug!("{} : {}", name, merge);
         if merge {
             return true;
         }
@@ -75,7 +73,7 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
 
 pub fn pull(repo: &Repository, credentials: Option<(String, String)>) {
     fetch(repo, credentials);
-    // repo.merge(annotated_commits, merge_opts, checkout_opts)
+    repo.merge(annotated_commits, merge_opts, checkout_opts)
 }
 
 pub fn signature() -> Signature<'static> {
@@ -84,7 +82,7 @@ pub fn signature() -> Signature<'static> {
 
 fn push(repo: &Repository, credentials: Option<(String, String)>) {
     let mut remote = repo.find_remote("http-origin").unwrap();
-    println!("URL: {:?}", remote.url());
+    log::debug!("URL: {:?}", remote.url());
     repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
         .unwrap();
 

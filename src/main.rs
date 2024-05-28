@@ -1,7 +1,7 @@
 use appender::append;
 use clap::{Parser, Subcommand};
 use config::{Appender, GitConfig};
-use git::{commit_and_push, signature};
+use git::{commit_and_push, pull, signature};
 use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
@@ -9,13 +9,14 @@ use std::{
 mod appender;
 use crate::{
     age::{decrypt, encrypt},
-    git::{fetch, open},
+    git::open,
 };
 mod age;
 mod config;
 mod git;
 
 fn main() {
+    env_logger::init();
     let args = Cli::parse();
 
     match args.command {
@@ -40,9 +41,10 @@ fn decrypt_file(path: String, repository_location: String, file: String) {
         .iter()
         .find(|(_, s)| s.source == file)
         .expect("File not in config");
-    println!(
+    log::debug!(
         "{}",
-        String::from_utf8(get_from_appender(file_appender).join(&b'\n')).unwrap()
+        String::from_utf8(get_from_appender(&repository_location, file_appender).join(&b'\n'))
+            .unwrap()
     );
 }
 
@@ -54,7 +56,7 @@ fn main_run(path: String) {
         // let c = repo.config().unwrap();
         // c.entries(None)
         //     .unwrap()
-        //     .for_each(|d| println!("{:?}:{:?}", d.name(), d.value()))
+        //     .for_each(|d| log::debug!("{:?}:{:?}", d.name(), d.value()))
         //     .unwrap();
         let credentials = appender.git_config.clone().map(
             |GitConfig {
@@ -68,14 +70,17 @@ fn main_run(path: String) {
                 )
             },
         );
-        fetch(&repo, credentials.clone());
+        pull(&repo, credentials.clone());
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.links.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let final_rw_content = rw_contents.clone();
-            let current_ro_content = &mut get_from_appender(file_appender);
+            let current_ro_content = &mut get_from_appender(git_folder, file_appender);
+            //   log::debug!("rw: {:?}", final_rw_content);
+            //   log::debug!("ro: {:?}", current_ro_content);
 
             let result = append(current_ro_content.clone(), final_rw_content.clone());
+            //  log::debug!("result: {:?}", result);
 
             if let Some(content_to_encrypt) = result {
                 needs_commit = true;
@@ -102,7 +107,7 @@ fn main_run(path: String) {
                 let status = entry.status();
                 let path = entry.path().unwrap_or_default();
 
-                println!("File: {}, {:?}", path, status.is_index_modified());
+                log::debug!("File: {}, {:?}", path, status.is_index_modified());
             }
             let sign = signature();
             commit_and_push(&repo, credentials, &sign, files);
@@ -110,9 +115,10 @@ fn main_run(path: String) {
     }
 }
 
-fn get_from_appender(file_appender: &Appender) -> Vec<Vec<u8>> {
+fn get_from_appender(appender_location: &String, file_appender: &Appender) -> Vec<Vec<u8>> {
+    let real_path = appender_location.clone() + "/" + &file_appender.source;
     if let Some(password_file) = file_appender.clone().password_file {
-        let ro_contents = get_file_contents(&file_appender.source).unwrap_or(Vec::new());
+        let ro_contents = get_file_contents(&real_path).unwrap_or(Vec::new());
         let passphrase = get_file_contents(&password_file).unwrap();
         if ro_contents.is_empty() {
             Vec::new()
@@ -120,12 +126,12 @@ fn get_from_appender(file_appender: &Appender) -> Vec<Vec<u8>> {
             decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
         }
     } else {
-        get_file_contents_as_lines(&file_appender.source).unwrap_or(Vec::new())
+        get_file_contents_as_lines(&real_path).unwrap_or(Vec::new())
     }
 }
 
 fn write_to_file(path: &String, content: &Vec<u8>) {
-    println!("writing to {}", path);
+    log::debug!("writing to {}", path);
     let mut file = File::create(path).unwrap();
     file.write_all(&content).unwrap();
 }
@@ -141,6 +147,7 @@ fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
 }
 
 fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
+    log::debug!("{}", path);
     fs::read(path)
 }
 
