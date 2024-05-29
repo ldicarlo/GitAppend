@@ -1,7 +1,8 @@
 use appender::append;
 use clap::{Parser, Subcommand};
-use config::{Appender, GitConfig};
-use git::{commit_and_push, pull, signature};
+use config::{GitConfig, GitLink};
+use git::{commit_and_push, get_blob_from_head, signature};
+use git2::Repository;
 use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
@@ -9,7 +10,7 @@ use std::{
 mod appender;
 use crate::{
     age::{decrypt, encrypt},
-    git::open,
+    git::{fetch, open},
 };
 mod age;
 mod config;
@@ -31,20 +32,37 @@ fn main() {
 
 fn decrypt_file(path: String, repository_location: String, file: String) {
     let configs = parse_config(path);
-    let (_, appenders) = configs
+    let (git_folder, appender) = configs
         .appenders
         .iter()
         .find(|(k, _)| **k == repository_location)
         .expect("Appender not found in config");
-    let (_, file_appender) = appenders
+    let (_, file_appender) = appender
         .links
         .iter()
-        .find(|(_, s)| s.source == file)
+        .find(|(_, s)| s.source_path == file)
         .expect("File not in config");
-    log::debug!(
+    let repo = open(&format!("{}/.git", git_folder));
+    let credentials = appender.git_config.clone().map(
+        |GitConfig {
+             username,
+             token_file,
+         }| {
+            (
+                username,
+                String::from_utf8(get_file_contents_strip_final_end_line(&token_file).unwrap())
+                    .unwrap(),
+            )
+        },
+    );
+    let source_branch = file_appender
+        .clone()
+        .source_branch
+        .unwrap_or("master".to_owned());
+    fetch(&repo, credentials, source_branch);
+    log::info!(
         "{}",
-        String::from_utf8(get_from_appender(&repository_location, file_appender).join(&b'\n'))
-            .unwrap()
+        String::from_utf8(get_from_appender(file_appender, &repo).join(&b'\n')).unwrap()
     );
 }
 
@@ -70,12 +88,13 @@ fn main_run(path: String) {
                 )
             },
         );
-        pull(&repo, credentials.clone());
+        fetch(&repo, credentials.clone(), "master".to_owned());
+        //pull(&repo, credentials.clone());
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.links.iter() {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let final_rw_content = rw_contents.clone();
-            let current_ro_content = &mut get_from_appender(git_folder, file_appender);
+            let current_ro_content = &mut get_from_appender(file_appender, &repo);
             //   log::debug!("rw: {:?}", final_rw_content);
             //   log::debug!("ro: {:?}", current_ro_content);
 
@@ -94,10 +113,10 @@ fn main_run(path: String) {
                         content_to_encrypt
                     };
                 write_to_file(
-                    &(git_folder.to_owned() + &"/" + &file_appender.source),
+                    &(git_folder.to_owned() + &"/" + &file_appender.source_path),
                     &final_ro_content,
                 );
-                files.push(file_appender.source.clone());
+                files.push(file_appender.source_path.clone());
             }
         }
         if needs_commit {
@@ -115,10 +134,21 @@ fn main_run(path: String) {
     }
 }
 
-fn get_from_appender(appender_location: &String, file_appender: &Appender) -> Vec<Vec<u8>> {
-    let real_path = appender_location.clone() + "/" + &file_appender.source;
+fn get_from_appender(file_appender: &GitLink, repo: &Repository) -> Vec<Vec<u8>> {
+    let source_branch = "http-origin/".to_owned()
+        + &file_appender
+            .clone()
+            .source_branch
+            .unwrap_or("master".to_owned());
+
+    let content = get_blob_from_head(
+        repo,
+        file_appender.clone().source_path,
+        source_branch.to_owned(),
+    );
+
     if let Some(password_file) = file_appender.clone().password_file {
-        let ro_contents = get_file_contents(&real_path).unwrap_or(Vec::new());
+        let ro_contents = content;
         let passphrase = get_file_contents(&password_file).unwrap();
         if ro_contents.is_empty() {
             Vec::new()
@@ -126,7 +156,8 @@ fn get_from_appender(appender_location: &String, file_appender: &Appender) -> Ve
             decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
         }
     } else {
-        get_file_contents_as_lines(&real_path).unwrap_or(Vec::new())
+        let res = content.split(|c| c == &b'\n');
+        res.map(|s| s.into()).collect()
     }
 }
 
@@ -203,7 +234,7 @@ enum Commands {
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        config::{self, Appender, GitAppender},
+        config::{self, GitAppender, GitLink},
         parse_config,
     };
 
@@ -219,16 +250,18 @@ pub mod tests {
                         links: vec![
                             (
                                 "plaintext_file".to_string(),
-                                Appender {
-                                    source: "file_in_git".to_string(),
+                                GitLink {
+                                    source_path: "file_in_git".to_string(),
                                     password_file: None,
+                                    source_branch: None
                                 }
                             ),
                             (
                                 "other_plaintext_file".to_string(),
-                                Appender {
-                                    source: "other_file_in_git".to_string(),
+                                GitLink {
+                                    source_path: "other_file_in_git".to_string(),
                                     password_file: Some(String::from("./test")),
+                                    source_branch: None
                                 }
                             )
                         ]

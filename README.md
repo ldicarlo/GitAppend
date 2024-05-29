@@ -22,7 +22,7 @@ For a personal log file, such as your daily thoughts, you would `echo` your thou
   - unique:bool ?
   - [x] password file location
 - [ ] nixos service
-
+- [ ] CLI doc
 
 ## V2 Features
 
@@ -36,4 +36,5 @@ For a personal log file, such as your daily thoughts, you would `echo` your thou
 - [ ] append every 5 seconds to a file
 - [ ] make options:
   - [ ] remote name (expected: `http-origin`)
+  - [ ] branch name
 - [ ] ssh support (http only now)

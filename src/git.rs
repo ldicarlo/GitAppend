@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use git2::{
     Cred, Direction, FetchOptions, IndexAddOption, Oid, PushOptions, RemoteCallbacks, Repository,
     Signature,
@@ -48,7 +50,7 @@ fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
     .unwrap()
 }
 
-pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
+pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: String) {
     let mut remote = repo.find_remote("http-origin").unwrap();
     let mut fetch_options = FetchOptions::default();
     fetch_options.remote_callbacks(create_callbacks(credentials.clone()));
@@ -56,10 +58,13 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
     remote
         .connect_auth(Direction::Fetch, Some(create_callbacks(credentials)), None)
         .unwrap();
-    repo.remote_add_fetch("origin", "refs/heads/master:refs/heads/master")
-        .unwrap();
+    repo.remote_add_fetch(
+        "http-origin",
+        &format!("refs/heads/{}:refs/heads/{}", branch, branch),
+    )
+    .unwrap();
     remote
-        .fetch(&["master"], Some(&mut fetch_options), None)
+        .fetch(&[&branch], Some(&mut fetch_options), None)
         .unwrap();
     repo.fetchhead_foreach(|name, _, _, merge| {
         log::debug!("{} : {}", name, merge);
@@ -71,10 +76,10 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>) {
     .unwrap()
 }
 
-pub fn pull(repo: &Repository, credentials: Option<(String, String)>) {
-    fetch(repo, credentials);
-    repo.merge(annotated_commits, merge_opts, checkout_opts)
-}
+// pub fn pull(repo: &Repository, credentials: Option<(String, String)>) {
+//     fetch(repo, credentials);
+//     //repo.f
+// }
 
 pub fn signature() -> Signature<'static> {
     Signature::now("Git-Append", "git-append@git").unwrap()
@@ -120,4 +125,28 @@ fn create_callbacks_with_creds<'a>(username: String, token: String) -> RemoteCal
     callbacks
         .credentials(move |_str, _str_opt, _cred_type| Cred::userpass_plaintext(&username, &token));
     callbacks
+}
+
+pub fn get_blob_from_head(repo: &Repository, path: String, branch_name: String) -> Vec<u8> {
+    let parent_commit = repo
+        .find_branch(&branch_name, git2::BranchType::Remote)
+        .unwrap();
+    let head_commit = parent_commit.into_reference().peel_to_commit().unwrap();
+    let path = Path::new(&path);
+    let binding = head_commit
+        .as_object()
+        .clone()
+        .into_commit()
+        .unwrap()
+        .tree()
+        .unwrap()
+        .get_path(path.into())
+        .unwrap();
+    binding
+        .to_object(repo)
+        .unwrap()
+        .into_blob()
+        .unwrap()
+        .content()
+        .into()
 }
