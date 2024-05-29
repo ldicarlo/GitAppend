@@ -88,9 +88,6 @@
                       OnBootSec = "5 min";
                       OnUnitInactiveSec = "10 sec";
                     };
-                    Install = {
-                      WantedBy = [ "timers.target" ];
-                    };
                   };
 
                 };
