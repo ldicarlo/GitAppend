@@ -79,6 +79,14 @@
                       RestartSec = "10s";
                     };
                   };
+                  systemd.timers.git-append = {
+                    enable = true;
+                    timerConfig = {
+                      Unit = "git-append.service";
+                      OnInactiveSec = 10;
+                    };
+                    unitConfig = { };
+                  };
 
                 };
             };
