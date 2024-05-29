@@ -30,10 +30,7 @@
             pname = "git-append";
           });
 
-          git-append = craneLib.buildPackage (commonArgs // {
-            pname = "git-append";
-            inherit cargoArtifacts;
-          });
+
         in
         rec {
           devShells.default = pkgs.mkShell {
@@ -47,7 +44,11 @@
           };
 
           packages =
-            {
+            rec  {
+              git-append = craneLib.buildPackage (commonArgs // {
+                pname = "git-append";
+                inherit cargoArtifacts;
+              });
               default = git-append;
             };
 
