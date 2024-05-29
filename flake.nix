@@ -80,11 +80,11 @@
                     };
                   };
                   systemd.timers.git-append = {
-                    Unit = {
-                      Description = "Git Append timer";
-                      After = [ "network.target" ];
+                    unitConfig = {
+                      description = "Git Append timer";
+                      after = [ "network.target" ];
                     };
-                    Timer = {
+                    timerConfig = {
                       OnBootSec = "5 min";
                       OnUnitInactiveSec = "10 sec";
                     };
