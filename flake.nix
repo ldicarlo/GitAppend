@@ -14,7 +14,7 @@
             inherit system;
           };
           lib = pkgs.lib;
-          craneLib = crane.lib.${system};
+          craneLib = crane.mkLib nixpkgs.legacyPackages.${system};
 
           commonArgs = {
             src = lib.cleanSourceWith {
