@@ -22,7 +22,7 @@ fn main() {
 
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
-        Commands::Decrypt {
+        Commands::Cat {
             config_path,
             file,
             repository_location,
@@ -209,15 +209,17 @@ struct Cli {
 }
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// This is the default command to run, from where you want, as a service (see `tests/example-config.json`).
     #[command(arg_required_else_help = true)]
     Run {
-        /// Configuration file location
+        /// Configuration file location (see `tests/example-config.json`).
         #[arg(short, long)]
         config_path: String,
     },
+    /// Read a file as the run command would read it, to see what it contains, from your config file.
     #[command(arg_required_else_help = true)]
-    Decrypt {
-        /// Configuration file location
+    Cat {
+        /// Configuration file location (see `tests/example-config.json`).
         #[arg(short, long)]
         config_path: String,
 
@@ -234,7 +236,7 @@ enum Commands {
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        config::{self, GitAppender, GitLink},
+        config::{self, GitAppender, GitConfig, GitLink},
         parse_config,
     };
 
@@ -242,33 +244,53 @@ pub mod tests {
     fn test_example_config() {
         assert_eq!(
             config::Config {
-                settings: "hello".to_string(),
-                appenders: vec![(
-                    "/home/someone/folder/.git".to_string(),
-                    GitAppender {
-                        git_config: None,
-                        links: vec![
-                            (
-                                "plaintext_file".to_string(),
+                appenders: vec![
+                    (
+                        "/home/someone/folder".to_string(),
+                        GitAppender {
+                            git_config: Some(GitConfig {
+                                username: "someone".to_owned(),
+                                token_file: "/passwords/github_token".to_owned()
+                            }),
+                            links: vec![
+                                (
+                                    "/home/local/plaintext_file".to_string(),
+                                    GitLink {
+                                        source_path: "file_in_git".to_string(),
+                                        password_file: None,
+                                        source_branch: Some("chore/special-branch".to_owned())
+                                    }
+                                ),
+                                (
+                                    "/home/local/encrypted/plaintext_file".to_string(),
+                                    GitLink {
+                                        source_path: "other_file_in_git".to_string(),
+                                        password_file: Some(String::from("/home/password-file")),
+                                        source_branch: None
+                                    }
+                                )
+                            ]
+                            .into_iter()
+                            .collect()
+                        }
+                    ),
+                    (
+                        "/home/some/other/folder/".to_string(),
+                        GitAppender {
+                            git_config: None,
+                            links: vec![(
+                                "/plaintext_file".to_string(),
                                 GitLink {
                                     source_path: "file_in_git".to_string(),
                                     password_file: None,
                                     source_branch: None
                                 }
-                            ),
-                            (
-                                "other_plaintext_file".to_string(),
-                                GitLink {
-                                    source_path: "other_file_in_git".to_string(),
-                                    password_file: Some(String::from("./test")),
-                                    source_branch: None
-                                }
-                            )
-                        ]
-                        .into_iter()
-                        .collect()
-                    }
-                )]
+                            ),]
+                            .into_iter()
+                            .collect()
+                        }
+                    )
+                ]
                 .into_iter()
                 .collect()
             },

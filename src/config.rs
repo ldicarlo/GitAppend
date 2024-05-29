@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    pub settings: String,
     pub appenders: HashMap<String, GitAppender>,
 }
 

@@ -1,14 +1,25 @@
 {
-  "settings": "hello",
   "appenders": {
-    "/home/someone/folder/.git": {
+    "/home/someone/folder": {
+      "git_config": {
+        "username": "someone",
+        "token_file": "/passwords/github_token"
+      },
       "links": {
-        "plaintext_file": {
-          "source": "file_in_git"
+        "/home/local/plaintext_file": {
+          "source_path": "file_in_git",
+          "source_branch": "chore/special-branch"
         },
-        "other_plaintext_file": {
-          "source": "other_file_in_git",
-          "password_file": "./test"
+        "/home/local/encrypted/plaintext_file": {
+          "source_path": "other_file_in_git",
+          "password_file": "/home/password-file"
+        }
+      }
+    },
+    "/home/some/other/folder/": {
+      "links": {
+        "/plaintext_file": {
+          "source_path": "file_in_git"
         }
       }
     }
