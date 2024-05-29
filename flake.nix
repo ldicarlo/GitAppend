@@ -93,5 +93,40 @@
 
                 };
             };
+
+          nixosModules.homeManager = { config, lib, pkgs, ... }:
+            with lib;
+            let
+              cfg = config.services.git-append;
+              git-append = self.packages.${system}.git-append;
+            in
+            {
+              options.services.git-append = {
+                enable = mkEnableOption "Enable git-append service";
+                configFile = mkOption {
+                  type = types.path;
+                  description = "The location of the config file. Check the doc for the details.";
+                };
+              };
+              config = mkIf cfg.enable
+                {
+                  systemd.user.services.git-append = {
+                    Description = "git-append runner";
+                    WantedBy = [ "multi-user.target" ];
+                    Environment = { };
+                    ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
+                    Restart = "on-failure";
+                    RestartSec = "10s";
+                  };
+                  systemd.user.timers.git-append = {
+                    Enable = true;
+                    Description = "Git Append timer";
+                    After = [ "network.target" ];
+                    OnBootSec = "5 min";
+                    OnUnitInactiveSec = "10 sec";
+                  };
+
+                };
+            };
         });
 }
