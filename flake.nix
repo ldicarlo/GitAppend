@@ -94,7 +94,7 @@
                 };
             };
 
-          nixosModules.homeManager = { config, lib, pkgs, ... }:
+          nixosModules.homeManagerModule = { config, lib, pkgs, ... }:
             with lib;
             let
               cfg = config.services.git-append;
