@@ -80,12 +80,17 @@
                     };
                   };
                   systemd.timers.git-append = {
-                    enable = true;
-                    timerConfig = {
-                      Unit = "git-append.service";
-                      OnInactiveSec = 10;
+                    Unit = {
+                      Description = "Git Append timer";
+                      After = [ "network.target" ];
                     };
-                    unitConfig = { };
+                    Timer = {
+                      OnBootSec = "5 min";
+                      OnUnitInactiveSec = "10 sec";
+                    };
+                    Install = {
+                      WantedBy = [ "timers.target" ];
+                    };
                   };
 
                 };
