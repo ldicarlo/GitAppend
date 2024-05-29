@@ -80,6 +80,7 @@
                     };
                   };
                   systemd.timers.git-append = {
+                    enable = true;
                     unitConfig = {
                       description = "Git Append timer";
                       after = [ "network.target" ];
