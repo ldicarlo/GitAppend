@@ -74,7 +74,7 @@
                     wantedBy = [ "multi-user.target" ];
                     environment = { };
                     serviceConfig = {
-                      ExecStart = "${git-append}/bin/git-append --config_path=${cfg.configFile}";
+                      ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
                       Restart = "on-failure";
                       RestartSec = "10s";
                     };
