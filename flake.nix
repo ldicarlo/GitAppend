@@ -30,6 +30,10 @@
             pname = "git-append";
           });
 
+          git-append = craneLib.buildPackage (commonArgs // {
+            pname = "git-append";
+            inherit cargoArtifacts;
+          });
 
         in
         rec {
@@ -45,10 +49,6 @@
 
           packages =
             rec  {
-              git-append = craneLib.buildPackage (commonArgs // {
-                pname = "git-append";
-                inherit cargoArtifacts;
-              });
               default = git-append;
             };
 
@@ -59,6 +59,7 @@
               cfg = config.services.git-append;
               git-append = self.packages.${system}.git-append;
             in
+            rec
             {
               options.services.git-append = {
                 enable = mkEnableOption "Enable git-append service";
@@ -74,7 +75,7 @@
                     wantedBy = [ "multi-user.target" ];
                     environment = { };
                     serviceConfig = {
-                      ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
+                      ExecStart = "${git-append}/bin/git-append run --config-path=${configFile}";
                       Restart = "on-failure";
                       RestartSec = "10s";
                     };
@@ -98,7 +99,7 @@
             with lib;
             let
               cfg = config.services.git-append;
-              git-append = self.packages.${system}.git-append;
+              git-append-package = self.packages.${system}.git-append;
             in
             {
               options.services.git-append = {
@@ -111,19 +112,28 @@
               config = mkIf cfg.enable
                 {
                   systemd.user.services.git-append = {
-                    Description = "git-append runner";
-                    WantedBy = [ "multi-user.target" ];
-                    Environment = { };
-                    ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
-                    Restart = "on-failure";
-                    RestartSec = "10s";
+                    Unit = {
+                      Description = "git-append runner";
+                      WantedBy = [ "multi-user.target" ];
+                    };
+                    Service = {
+                      ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
+                      Restart = "on-failure";
+                      RestartSec = "10s";
+                    };
                   };
                   systemd.user.timers.git-append = {
-                    Enable = true;
-                    Description = "Git Append timer";
-                    After = [ "network.target" ];
-                    OnBootSec = "5 min";
-                    OnUnitInactiveSec = "10 sec";
+                    Unit = {
+                      Description = "Git Append timer";
+                    };
+                    Timer = {
+                      After = [ "network.target" ];
+                      OnBootSec = "5 min";
+                      OnUnitInactiveSec = "10 sec";
+                    };
+                    Install = {
+                      WantedBy = [ "timers.target" ];
+                    };
                   };
 
                 };

@@ -133,7 +133,7 @@ pub fn get_blob_from_head(repo: &Repository, path: String, branch_name: String) 
         .unwrap();
     let head_commit = parent_commit.into_reference().peel_to_commit().unwrap();
     let path = Path::new(&path);
-    let binding = head_commit
+    let maybe_path = head_commit
         .as_object()
         .clone()
         .into_commit()
@@ -141,12 +141,15 @@ pub fn get_blob_from_head(repo: &Repository, path: String, branch_name: String) 
         .tree()
         .unwrap()
         .get_path(path.into())
-        .unwrap();
-    binding
-        .to_object(repo)
-        .unwrap()
-        .into_blob()
-        .unwrap()
-        .content()
-        .into()
+        .ok();
+    if let Some(tree) = maybe_path {
+        tree.to_object(repo)
+            .unwrap()
+            .into_blob()
+            .unwrap()
+            .content()
+            .into()
+    } else {
+        Vec::new()
+    }
 }

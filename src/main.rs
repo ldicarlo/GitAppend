@@ -101,10 +101,10 @@ fn main_run(path: String) {
             let result = append(current_ro_content.clone(), final_rw_content.clone());
             //  log::debug!("result: {:?}", result);
 
+            write_to_file(file_path, &result.clone().unwrap_or(Vec::new()));
             if let Some(content_to_encrypt) = result {
                 needs_commit = true;
 
-                write_to_file(file_path, &content_to_encrypt);
                 let final_ro_content =
                     if let Some(password_file) = file_appender.clone().password_file {
                         let passphrase = get_file_contents(&password_file).unwrap();
