@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use config::{GitConfig, GitLink};
 use git::{commit_and_push, get_blob_from_head, signature};
 use git2::Repository;
+use log::{debug, LevelFilter};
 use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
@@ -17,9 +18,12 @@ mod config;
 mod git;
 
 fn main() {
-    env_logger::init();
+    // env_logger::init();
+    std::env::set_var("RUST_LOG", "debug");
+    let _ = systemd_journal_logger::JournalLog::new().unwrap().install();
+    log::set_max_level(LevelFilter::Debug);
     let args = Cli::parse();
-
+    debug!("LOG test");
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
         Commands::Cat {

@@ -114,12 +114,15 @@
                   systemd.user.services.git-append = {
                     Unit = {
                       Description = "git-append runner";
-                      WantedBy = [ "multi-user.target" ];
                     };
                     Service = {
                       ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
                       Restart = "on-failure";
                       RestartSec = "10s";
+                      Type = "oneshot";
+                    };
+                    Install = {
+                      WantedBy = [ "timers.target" ];
                     };
                   };
                   systemd.user.timers.git-append = {
