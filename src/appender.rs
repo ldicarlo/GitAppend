@@ -1,17 +1,23 @@
 use std::collections::BTreeSet;
 
-pub fn append(remote_file: Vec<Vec<u8>>, local_file: Vec<Vec<u8>>) -> Option<Vec<u8>> {
+pub fn append(
+    remote_file: Vec<Vec<u8>>,
+    local_file: Vec<Vec<u8>>,
+) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
     let mut local_hash_set = BTreeSet::from_iter(local_file.clone());
     let mut remote_hash_set = BTreeSet::from_iter(remote_file.clone());
-
-    if local_hash_set == remote_hash_set {
-        return None;
-    }
 
     println!("{:?}", String::from_utf8(remote_file.clone().join(&b'\n')));
     println!("{:?}", String::from_utf8(local_file.clone().join(&b'\n')));
 
-    local_hash_set.append(&mut remote_hash_set);
+    let mut sum = BTreeSet::new();
+
+    sum.append(&mut remote_hash_set);
+    sum.append(&mut local_hash_set);
+
+    if local_hash_set == remote_hash_set {
+        return (None, None);
+    }
     let uniq_final_rw_content: Vec<Vec<u8>> = local_hash_set.into_iter().collect();
     let end_line_content = last_char(uniq_final_rw_content.join(&b'\n'));
     Some(end_line_content)
