@@ -98,8 +98,8 @@ fn push(repo: &Repository, credentials: Option<(String, String)>) {
             None,
         )
         .unwrap();
-    repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
-        .unwrap();
+    // repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
+    //     .unwrap();
     let mut push_options = PushOptions::default();
     let callbacks = create_callbacks(credentials.clone());
     push_options.remote_callbacks(callbacks);
