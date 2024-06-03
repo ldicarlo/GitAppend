@@ -1,14 +1,15 @@
 use std::collections::BTreeSet;
 
 pub fn append(remote_file: Vec<Vec<u8>>, local_file: Vec<Vec<u8>>) -> Option<Vec<u8>> {
-    if remote_file == local_file {
+    let mut local_hash_set = BTreeSet::from_iter(local_file.clone());
+    let mut remote_hash_set = BTreeSet::from_iter(remote_file.clone());
+
+    if local_hash_set == remote_hash_set {
         return None;
     }
 
-    let mut r = remote_file.clone();
-
-    r.append(&mut local_file.clone());
-    let uniq_final_rw_content: Vec<Vec<u8>> = BTreeSet::from_iter(r).into_iter().collect();
+    local_hash_set.append(&mut remote_hash_set);
+    let uniq_final_rw_content: Vec<Vec<u8>> = local_hash_set.into_iter().collect();
     let end_line_content = last_char(uniq_final_rw_content.join(&b'\n'));
     Some(end_line_content)
 }
@@ -52,6 +53,13 @@ pub mod tests {
         assert_eq!(
             Some(vec![b'a', b'\n', b'b', b'c', b'\n']),
             append(vec![vec![b'a'], vec![b'b', b'c',]], vec![])
+        );
+    }
+    #[test]
+    fn test_content_4() {
+        assert_eq!(
+            None,
+            append(vec![vec![b'b'], vec![b'a']], vec![vec![b'a'], vec![b'b'],],)
         );
     }
 }

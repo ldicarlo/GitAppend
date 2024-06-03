@@ -99,8 +99,6 @@ fn main_run(path: String) {
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let final_rw_content = rw_contents.clone();
             let current_ro_content = &mut get_from_appender(file_appender, &repo);
-            //   log::debug!("rw: {:?}", final_rw_content);
-            //   log::debug!("ro: {:?}", current_ro_content);
 
             let result = append(current_ro_content.clone(), final_rw_content.clone());
             println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
