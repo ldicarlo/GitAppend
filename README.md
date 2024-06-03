@@ -4,6 +4,7 @@ This program make "links" between local files not in a git index repo and files 
 
 # Requirements / Installation
 
+- for the configuration see `./tests/example-config.json` for a full example
 - You need to add a HTTP origin `http-origin` in your git repository. This does not support ssh, and for now `http-origin` is hardcoded
 - If you don't use nixos, you need to set up any CRON/systemd, to run `git-append run --config-path=/some/path.json`
 - If you use nixos, after importing it, you have access to options, see in `./flake.nix`
