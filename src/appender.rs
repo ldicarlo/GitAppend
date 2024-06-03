@@ -8,6 +8,9 @@ pub fn append(remote_file: Vec<Vec<u8>>, local_file: Vec<Vec<u8>>) -> Option<Vec
         return None;
     }
 
+    println!("{:?}", String::from_utf8(remote_file.clone().join(&b'\n')));
+    println!("{:?}", String::from_utf8(local_file.clone().join(&b'\n')));
+
     local_hash_set.append(&mut remote_hash_set);
     let uniq_final_rw_content: Vec<Vec<u8>> = local_hash_set.into_iter().collect();
     let end_line_content = last_char(uniq_final_rw_content.join(&b'\n'));
