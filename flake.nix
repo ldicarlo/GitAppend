@@ -117,11 +117,7 @@
                     };
                     Service = {
                       ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
-                      Restart = "never";
                       Type = "oneshot";
-                    };
-                    Install = {
-                      WantedBy = [ "timers.target" ];
                     };
                   };
                   systemd.user.timers.git-append = {
