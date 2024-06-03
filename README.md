@@ -28,9 +28,9 @@ For now, files are sorted per uniques lines.
 - [x] local clear text file
 - [ ] Appender:
   - [x] .git location
-  - clear editable file location
-  - sorted:bool ?
-  - unique:bool ?
+  - [x] clear editable file location
+  - [ ] sorted:bool ?
+  - [ ] unique:bool ?
   - [x] password file location
 - [x] CLI doc
 
