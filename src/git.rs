@@ -88,8 +88,8 @@ pub fn signature() -> Signature<'static> {
 fn push(repo: &Repository, credentials: Option<(String, String)>) {
     let mut remote = repo.find_remote("http-origin").unwrap();
     log::debug!("URL: {:?}", remote.url());
-    repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
-        .unwrap();
+    // repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
+    //     .unwrap();
 
     remote
         .connect_auth(
