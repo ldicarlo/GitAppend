@@ -103,7 +103,7 @@ fn main_run(path: String) {
             //   log::debug!("ro: {:?}", current_ro_content);
 
             let result = append(current_ro_content.clone(), final_rw_content.clone());
-            println!("result: {:?}", result);
+            println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
 
             write_to_file(file_path, &result.clone().unwrap_or(Vec::new()));
             if let Some(content_to_encrypt) = result {
