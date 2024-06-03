@@ -1,10 +1,12 @@
-# Git-Append
+# GitAppend
 
 This program make "links" between local files not in a git index repo and files in a git index repo to keep them in sync
 
-# Requirements
+# Requirements / Installation
 
 - You need to add a HTTP origin `http-origin` in your git repository. This does not support ssh, and for now `http-origin` is hardcoded
+- If you don't use nixos, you need to set up any CRON/systemd, to run `git-append run --config-path=/some/path.json`
+- If you use nixos, after importing it, you have access to options, see in `./flake.nix`
 
 ## Use Cases
 
@@ -19,9 +21,9 @@ For now, files are sorted per uniques lines.
 # Features
 
 - [x] config file
-- [ ] logs
-- [ ] nixos systemd service
-- [ ] config file + systemd service (`git-append run --config=./config.json`)
+- [ ] logs (there is still a bug here, the logs don't appear in systemd)
+- [x] nixos systemd service
+- [x] config file + systemd service (`git-append run --config=./config.json`)
 - [x] local clear text file
 - [ ] Appender:
   - [x] .git location
@@ -35,10 +37,11 @@ For now, files are sorted per uniques lines.
 
 - [x] nixos config as expected
 - [x] encrypted
-- [ ] encrypt lines from nth char
 
 ## Someday
 
+- [ ] per line encryption
+- [ ] encrypt lines from nth char
 - [ ] stat diffs before sending
 - [ ] append every 5 seconds to a file
 - [ ] make options:
