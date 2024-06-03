@@ -62,7 +62,7 @@
             rec
             {
               options.services.git-append = {
-                enable = mkEnableOption "Enable git-append service";
+                enable = mkEnableOption "Enable GitAppend service";
                 configFile = mkOption {
                   type = types.path;
                   description = "The location of the config file. Check the doc for the details.";
@@ -71,7 +71,7 @@
               config = mkIf cfg.enable
                 {
                   systemd.services.git-append = {
-                    description = "git-append runner";
+                    description = "GitAppend runner";
                     wantedBy = [ "multi-user.target" ];
                     environment = { };
                     serviceConfig = {
@@ -83,7 +83,7 @@
                   systemd.timers.git-append = {
                     enable = true;
                     unitConfig = {
-                      description = "Git Append timer";
+                      description = "GitAppend timer";
                       after = [ "network.target" ];
                     };
                     timerConfig = {
@@ -117,8 +117,7 @@
                     };
                     Service = {
                       ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
-                      Restart = "on-failure";
-                      RestartSec = "10s";
+                      Restart = "never";
                       Type = "oneshot";
                     };
                     Install = {
