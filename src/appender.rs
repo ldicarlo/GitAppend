@@ -7,8 +7,8 @@ pub fn append(
     let local_hash_set = BTreeSet::from_iter(local_file.clone());
     let remote_hash_set = BTreeSet::from_iter(remote_file.clone());
 
-    println!("{:?}", String::from_utf8(remote_file.clone().join(&b'\n')));
-    println!("{:?}", String::from_utf8(local_file.clone().join(&b'\n')));
+    // println!("{:?}", String::from_utf8(remote_file.clone().join(&b'\n')));
+    // println!("{:?}", String::from_utf8(local_file.clone().join(&b'\n')));
 
     let mut sum = BTreeSet::new();
 

@@ -64,10 +64,10 @@ fn decrypt_file(path: String, repository_location: String, file: String) {
         .source_branch
         .unwrap_or("master".to_owned());
     fetch(&repo, credentials, source_branch);
-    println!(
-        "{}",
-        String::from_utf8(get_from_appender(file_appender, &repo).join(&b'\n')).unwrap()
-    );
+    // println!(
+    //     "{}",
+    //     String::from_utf8(get_from_appender(file_appender, &repo).join(&b'\n')).unwrap()
+    // );
 }
 
 fn main_run(path: String) {
