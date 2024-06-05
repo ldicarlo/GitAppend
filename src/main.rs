@@ -100,11 +100,14 @@ fn main_run(path: String) {
             let final_rw_content = rw_contents.clone();
             let current_ro_content = &mut get_from_appender(file_appender, &repo);
 
-            let result = append(current_ro_content.clone(), final_rw_content.clone());
-            println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
+            let (local_result, remote_result) =
+                append(current_ro_content.clone(), final_rw_content.clone());
 
-            write_to_file(file_path, &result.clone().unwrap_or(Vec::new()));
-            if let Some(content_to_encrypt) = result {
+            // println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
+            if let Some(local_content) = local_result {
+                write_to_file(file_path, &local_content.clone());
+            }
+            if let Some(content_to_encrypt) = remote_result {
                 needs_commit = true;
 
                 let final_ro_content =
