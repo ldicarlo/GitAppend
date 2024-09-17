@@ -178,7 +178,8 @@ fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
     Ok(io::BufReader::new(file)
         .lines()
         .into_iter()
-        .map(|l| l.unwrap().as_bytes().into())
+        .flat_map(|l| l.ok())
+        .map(|l| l.as_bytes().into())
         .collect())
 }
 
