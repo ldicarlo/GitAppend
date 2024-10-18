@@ -8,7 +8,10 @@
       "links": {
         "/home/local/plaintext_file": {
           "source_path": "file_in_git",
-          "source_branch": "chore/special-branch"
+          "source_branch": "chore/special-branch",
+          "remove_lines": [
+            "first_ignored_line"
+          ]
         },
         "/home/local/encrypted/plaintext_file": {
           "source_path": "other_file_in_git",

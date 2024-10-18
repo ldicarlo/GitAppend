@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +23,7 @@ pub struct GitLink {
     // pub Option<sorted>: bool
     // pub Option<unique>: bool
     pub password_file: Option<String>,
+    pub remove_lines: Option<HashSet<String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]

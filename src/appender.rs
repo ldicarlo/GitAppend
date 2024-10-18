@@ -1,8 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 pub fn append(
     remote_file: Vec<Vec<u8>>,
     local_file: Vec<Vec<u8>>,
+    remove_lines: HashSet<String>,
 ) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
     let local_hash_set = BTreeSet::from_iter(local_file.clone());
     let remote_hash_set = BTreeSet::from_iter(remote_file.clone());
@@ -14,6 +15,17 @@ pub fn append(
 
     sum.append(&mut remote_hash_set.clone());
     sum.append(&mut local_hash_set.clone());
+
+    if !remove_lines.is_empty() {
+        let rm_lines_bytes: Vec<Vec<u8>> = remove_lines
+            .into_iter()
+            .map(|line| line.as_bytes().to_owned())
+            .collect();
+        sum = sum
+            .into_iter()
+            .filter(|line| !rm_lines_bytes.contains(line))
+            .collect();
+    }
 
     if local_hash_set == remote_hash_set {
         return (None, None);
@@ -48,18 +60,24 @@ fn last_char(mut content: Vec<u8>) -> Vec<u8> {
 
 #[cfg(test)]
 pub mod tests {
+    use std::collections::HashSet;
+
     use crate::appender::append;
 
     #[test]
     fn test_content() {
-        assert_eq!((None, None), append(Vec::new(), Vec::new()));
+        assert_eq!((None, None), append(Vec::new(), Vec::new(), HashSet::new()));
     }
 
     #[test]
     fn test_content_1() {
         assert_eq!(
-            (Some(vec![b'a', b'\n', b'b', b'c', b'\n']), None),
-            append(vec![vec![b'a'], vec![b'b', b'c',]], vec![vec![b'b', b'c']])
+            (Some(vec![b'a', b'\n', b'b', b'c', b'\n',]), None),
+            append(
+                vec![vec![b'a'], vec![b'b', b'c',]],
+                vec![vec![b'b', b'c'],],
+                HashSet::new()
+            )
         );
     }
 
@@ -67,7 +85,7 @@ pub mod tests {
     fn test_content_2() {
         assert_eq!(
             (None, Some(vec![b'b', b'c', b'\n'])),
-            append(vec![], vec![vec![b'b', b'c']])
+            append(vec![], vec![vec![b'b', b'c']], HashSet::new())
         );
     }
 
@@ -75,14 +93,33 @@ pub mod tests {
     fn test_content_3() {
         assert_eq!(
             (Some(vec![b'a', b'\n', b'b', b'c', b'\n']), None),
-            append(vec![vec![b'a'], vec![b'b', b'c',]], vec![])
+            append(vec![vec![b'a'], vec![b'b', b'c',]], vec![], HashSet::new())
         );
     }
     #[test]
     fn test_content_4() {
         assert_eq!(
             (None, None),
-            append(vec![vec![b'b'], vec![b'a']], vec![vec![b'a'], vec![b'b'],],)
+            append(
+                vec![vec![b'b'], vec![b'a']],
+                vec![vec![b'a'], vec![b'b'],],
+                HashSet::new()
+            )
+        );
+    }
+
+    #[test]
+    fn test_content_5() {
+        assert_eq!(
+            (
+                Some(vec![b'a', b'\n', b'b', b'c', b'\n',]),
+                Some(vec![b'a', b'\n', b'b', b'c', b'\n',])
+            ),
+            append(
+                vec![vec![b'a'], vec![b'b', b'c',], vec![b'f']],
+                vec![vec![b'b', b'c'],],
+                vec![String::from("f")].into_iter().collect()
+            )
         );
     }
 }

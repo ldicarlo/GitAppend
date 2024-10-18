@@ -5,6 +5,7 @@ use git::{commit_and_push, get_blob_from_head, signature};
 use git2::Repository;
 use log::{debug, LevelFilter};
 use std::{
+    collections::HashSet,
     fs::{self, File},
     io::{self, BufRead, BufReader, Write},
 };
@@ -96,12 +97,16 @@ fn main_run(path: String) {
         //pull(&repo, credentials.clone());
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.links.iter() {
+            let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());
             let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
             let final_rw_content = rw_contents.clone();
             let current_ro_content = &mut get_from_appender(file_appender, &repo);
 
-            let (local_result, remote_result) =
-                append(current_ro_content.clone(), final_rw_content.clone());
+            let (local_result, remote_result) = append(
+                current_ro_content.clone(),
+                final_rw_content.clone(),
+                rm_lines.clone(),
+            );
 
             // println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
             if let Some(local_content) = local_result {
@@ -245,6 +250,7 @@ pub mod tests {
         config::{self, GitAppender, GitConfig, GitLink},
         parse_config,
     };
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_example_config() {
@@ -264,7 +270,12 @@ pub mod tests {
                                     GitLink {
                                         source_path: "file_in_git".to_string(),
                                         password_file: None,
-                                        source_branch: Some("chore/special-branch".to_owned())
+                                        source_branch: Some("chore/special-branch".to_owned()),
+                                        remove_lines: Some(
+                                            vec![String::from("first_ignored_line")]
+                                                .into_iter()
+                                                .collect()
+                                        ),
                                     }
                                 ),
                                 (
@@ -272,7 +283,8 @@ pub mod tests {
                                     GitLink {
                                         source_path: "other_file_in_git".to_string(),
                                         password_file: Some(String::from("/home/password-file")),
-                                        source_branch: None
+                                        source_branch: None,
+                                        remove_lines: None,
                                     }
                                 )
                             ]
@@ -289,7 +301,8 @@ pub mod tests {
                                 GitLink {
                                     source_path: "file_in_git".to_string(),
                                     password_file: None,
-                                    source_branch: None
+                                    source_branch: None,
+                                    remove_lines: None
                                 }
                             ),]
                             .into_iter()
