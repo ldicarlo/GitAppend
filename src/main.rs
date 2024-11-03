@@ -118,7 +118,10 @@ fn main_run(path: String) {
                 let final_ro_content =
                     if let Some(password_file) = file_appender.clone().password_file {
                         let passphrase = get_file_contents(&password_file).unwrap();
-                        encrypt(&content_to_encrypt, String::from_utf8(passphrase).unwrap())
+                        encrypt(
+                            &content_to_encrypt,
+                            String::from_utf8(passphrase).unwrap().into_boxed_str(),
+                        )
                     } else {
                         content_to_encrypt
                     };
@@ -163,7 +166,10 @@ fn get_from_appender(file_appender: &GitLink, repo: &Repository) -> Vec<Vec<u8>>
         if ro_contents.is_empty() {
             Vec::new()
         } else {
-            decrypt(ro_contents, String::from_utf8(passphrase).unwrap())
+            decrypt(
+                ro_contents,
+                String::from_utf8(passphrase).unwrap().into_boxed_str(),
+            )
         }
     } else {
         let res = content.split(|c| c == &b'\n');
