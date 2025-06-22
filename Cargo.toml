@@ -17,6 +17,7 @@ age = "0.11.0"
 env_logger = "0.11.3"
 systemd-journal-logger = "2.1.1"
 time = "0.3.36"
+glob = "0.3.2"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"

@@ -12,7 +12,10 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct GitAppender {
     pub git_config: Option<GitConfig>,
+    #[serde(default = "HashMap::new")]
     pub links: HashMap<String, GitLink>,
+    #[serde(default = "HashMap::new")]
+    pub folder_links: HashMap<String, GitLink>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]

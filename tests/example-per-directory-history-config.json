@@ -1,0 +1,15 @@
+{
+    "appenders": {
+        "/home/<user>/repository-location": {
+            "git_config": {
+                "username": "<github-user>",
+                "token_file": "/passwords/github_token"
+            },
+            "folder_links": {
+                "/home/<user>/.directory_history": {
+                    "source_path": ".directory_history"
+                }
+            }
+        }
+    }
+}

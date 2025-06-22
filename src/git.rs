@@ -127,7 +127,7 @@ fn create_callbacks_with_creds<'a>(username: String, token: String) -> RemoteCal
     callbacks
 }
 
-pub fn get_blob_from_head(repo: &Repository, path: String, branch_name: String) -> Vec<u8> {
+pub fn get_blob_from_head(repo: &Repository, path: &String, branch_name: String) -> Vec<u8> {
     let parent_commit = repo
         .find_branch(&branch_name, git2::BranchType::Remote)
         .unwrap();

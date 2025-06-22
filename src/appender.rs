@@ -1,5 +1,39 @@
 use std::collections::{BTreeSet, HashSet};
 
+use git2::Repository;
+
+use crate::{age::decrypt, config::GitLink, file::get_file_contents, git::get_blob_from_head};
+
+pub fn get_from_appender(
+    file_appender: &GitLink,
+    repo: &Repository,
+    repo_file_path: &String,
+) -> Vec<Vec<u8>> {
+    let source_branch = "http-origin/".to_owned()
+        + &file_appender
+            .clone()
+            .source_branch
+            .unwrap_or("master".to_owned());
+
+    let content = get_blob_from_head(repo, repo_file_path, source_branch.to_owned());
+
+    if let Some(password_file) = file_appender.clone().password_file {
+        let ro_contents = content;
+        let passphrase = get_file_contents(&password_file).unwrap();
+        if ro_contents.is_empty() {
+            Vec::new()
+        } else {
+            decrypt(
+                ro_contents,
+                String::from_utf8(passphrase).unwrap().into_boxed_str(),
+            )
+        }
+    } else {
+        let res = content.split(|c| c == &b'\n');
+        res.map(|s| s.into()).collect()
+    }
+}
+
 pub fn append(
     remote_file: Vec<Vec<u8>>,
     local_file: Vec<Vec<u8>>,

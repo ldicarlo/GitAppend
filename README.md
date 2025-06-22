@@ -4,7 +4,7 @@ This program make "links" between local files not in a git index repo and files 
 
 # Requirements / Installation
 
-- for the configuration see `./tests/example-config.json` for a full example
+- for the configuration see [./tests/example-config.json](./tests/example-config.json) for a full example
 - You need to add a HTTP origin `http-origin` in your git repository. This does not support ssh, and for now `http-origin` is hardcoded
 - If you don't use nixos, you need to set up any CRON/systemd, to run `git-append run --config-path=/some/path.json`
 - If you use nixos, after importing it, you have access to options, see in `./flake.nix`
@@ -18,6 +18,10 @@ For a personal log file, such as your daily thoughts, you would `echo` your thou
 For debugging purposes you can use the `git-append cat ...` command which show you the content of a file from the config you feed it.
 
 For now, files are sorted per uniques lines.
+
+### Folder links
+
+If you use [Per-Directory-History](https://github.com/jimhester/per-directory-history) for example, you can also declare a synced folder, using `folder_links` (see [per-directory-history config example](./tests/example-per-directory-history-config.json)).
 
 # Features
 
@@ -33,6 +37,7 @@ For now, files are sorted per uniques lines.
   - [ ] unique:bool ?
   - [x] password file location
 - [x] CLI doc
+- [x] Whole folder sync (`folder_links`)
 
 ## V2 Features
 
