@@ -1,6 +1,6 @@
 {
   "appenders": {
-    "/home/someone/folder": {
+    "/home/someone/repository-location": {
       "git_config": {
         "username": "someone",
         "token_file": "/passwords/github_token"
@@ -19,10 +19,15 @@
         }
       }
     },
-    "/home/some/other/folder/": {
+    "/home/some/other/repository-location": {
       "links": {
         "/plaintext_file": {
           "source_path": "file_in_git"
+        }
+      },
+      "folder_links": {
+        "/plaintext_folder": {
+          "source_path": "folder_in_git"
         }
       }
     }

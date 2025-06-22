@@ -1,17 +1,15 @@
-use appender::append;
 use clap::{Parser, Subcommand};
-use config::{GitConfig, GitLink};
-use git::{commit_and_push, get_blob_from_head, signature};
-use git2::Repository;
+use config::GitConfig;
+use git::{commit_and_push, signature};
+use glob::glob;
 use log::{debug, LevelFilter};
-use std::{
-    collections::HashSet,
-    fs::{self, File},
-    io::{self, BufRead, BufReader, Write},
-};
 mod appender;
+mod core;
+mod encryption;
+mod file;
 use crate::{
-    age::{decrypt, encrypt},
+    core::{decrypt_file, process_file},
+    file::{get_file_contents_as_lines, get_file_contents_strip_final_end_line, parse_config},
     git::{fetch, open},
 };
 mod age;
@@ -35,42 +33,6 @@ fn main() {
     }
 }
 
-fn decrypt_file(path: String, repository_location: String, file: String) {
-    let configs = parse_config(path);
-    let (git_folder, appender) = configs
-        .appenders
-        .iter()
-        .find(|(k, _)| **k == repository_location)
-        .expect("Appender not found in config");
-    let (_, file_appender) = appender
-        .links
-        .iter()
-        .find(|(_, s)| s.source_path == file)
-        .expect("File not in config");
-    let repo = open(&format!("{}/.git", git_folder));
-    let credentials = appender.git_config.clone().map(
-        |GitConfig {
-             username,
-             token_file,
-         }| {
-            (
-                username,
-                String::from_utf8(get_file_contents_strip_final_end_line(&token_file).unwrap())
-                    .unwrap(),
-            )
-        },
-    );
-    let source_branch = file_appender
-        .clone()
-        .source_branch
-        .unwrap_or("master".to_owned());
-    fetch(&repo, credentials, source_branch);
-    // println!(
-    //     "{}",
-    //     String::from_utf8(get_from_appender(file_appender, &repo).join(&b'\n')).unwrap()
-    // );
-}
-
 fn main_run(path: String) {
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
@@ -88,8 +50,11 @@ fn main_run(path: String) {
              }| {
                 (
                     username,
-                    String::from_utf8(get_file_contents_strip_final_end_line(&token_file).unwrap())
-                        .unwrap(),
+                    String::from_utf8(
+                        get_file_contents_strip_final_end_line(&token_file)
+                            .expect(&format!("Could not find {}", token_file)),
+                    )
+                    .expect(&format!("Error converting from utf8")),
                 )
             },
         );
@@ -97,39 +62,46 @@ fn main_run(path: String) {
         //pull(&repo, credentials.clone());
         let mut needs_commit = false;
         for (file_path, file_appender) in appender.links.iter() {
-            let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());
-            let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
-            let final_rw_content = rw_contents.clone();
-            let current_ro_content = &mut get_from_appender(file_appender, &repo);
-
-            let (local_result, remote_result) = append(
-                current_ro_content.clone(),
-                final_rw_content.clone(),
-                rm_lines.clone(),
+            let (new_files, new_needs_commit) = process_file(
+                file_appender,
+                file_path,
+                file_appender.source_path.to_owned(),
+                git_folder,
+                &repo,
             );
-
-            // println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
-            if let Some(local_content) = local_result {
-                write_to_file(file_path, &local_content.clone());
-            }
-            if let Some(content_to_encrypt) = remote_result {
-                needs_commit = true;
-
-                let final_ro_content =
-                    if let Some(password_file) = file_appender.clone().password_file {
-                        let passphrase = get_file_contents(&password_file).unwrap();
-                        encrypt(
-                            &content_to_encrypt,
-                            String::from_utf8(passphrase).unwrap().into_boxed_str(),
-                        )
-                    } else {
-                        content_to_encrypt
-                    };
-                write_to_file(
-                    &(git_folder.to_owned() + &"/" + &file_appender.source_path),
-                    &final_ro_content,
-                );
-                files.push(file_appender.source_path.clone());
+            needs_commit = needs_commit || new_needs_commit;
+            files.extend(new_files);
+        }
+        for (file_path, folder_appender) in appender.folder_links.iter() {
+            for entry in glob(&format!("{}/**/*", file_path)).expect("Failed to read glob pattern")
+            {
+                let (new_files, new_needs_commit) = match entry {
+                    Ok(path) => {
+                        if path.is_file() {
+                            let local_path = path.strip_prefix(file_path).unwrap();
+                            process_file(
+                                folder_appender,
+                                &format!("{}", path.display()),
+                                format!(
+                                    "{}/{}",
+                                    folder_appender.source_path.to_owned(),
+                                    local_path.display(),
+                                ),
+                                git_folder,
+                                &repo,
+                            )
+                        } else {
+                            println!("Ignored folder or link: {:?}", path);
+                            (Vec::new(), false)
+                        }
+                    }
+                    Err(e) => {
+                        println!("Ignored: {:?}", e);
+                        (Vec::new(), false)
+                    }
+                };
+                needs_commit = needs_commit || new_needs_commit;
+                files.extend(new_files);
             }
         }
         if needs_commit {
@@ -145,77 +117,6 @@ fn main_run(path: String) {
             commit_and_push(&repo, credentials, &sign, files);
         }
     }
-}
-
-fn get_from_appender(file_appender: &GitLink, repo: &Repository) -> Vec<Vec<u8>> {
-    let source_branch = "http-origin/".to_owned()
-        + &file_appender
-            .clone()
-            .source_branch
-            .unwrap_or("master".to_owned());
-
-    let content = get_blob_from_head(
-        repo,
-        file_appender.clone().source_path,
-        source_branch.to_owned(),
-    );
-
-    if let Some(password_file) = file_appender.clone().password_file {
-        let ro_contents = content;
-        let passphrase = get_file_contents(&password_file).unwrap();
-        if ro_contents.is_empty() {
-            Vec::new()
-        } else {
-            decrypt(
-                ro_contents,
-                String::from_utf8(passphrase).unwrap().into_boxed_str(),
-            )
-        }
-    } else {
-        let res = content.split(|c| c == &b'\n');
-        res.map(|s| s.into()).collect()
-    }
-}
-
-fn write_to_file(path: &String, content: &Vec<u8>) {
-    log::debug!("writing to {}", path);
-    let mut file = File::create(path).unwrap();
-    file.write_all(&content).unwrap();
-}
-
-fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
-    let file = File::open(path)?;
-
-    Ok(io::BufReader::new(file)
-        .lines()
-        .into_iter()
-        .flat_map(|l| l.ok())
-        .map(|l| l.as_bytes().into())
-        .collect())
-}
-
-fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
-    log::debug!("{}", path);
-    fs::read(path)
-}
-
-fn get_file_contents_strip_final_end_line(path: &String) -> Result<Vec<u8>, std::io::Error> {
-    fs::read(path).map(|mut s| {
-        if s.ends_with(b"\n") {
-            s.pop();
-            s
-        } else {
-            s
-        }
-    })
-}
-
-fn parse_config(path: String) -> config::Config {
-    let file = File::open(path.clone()).expect("Cannot open path.");
-    let reader = BufReader::new(file);
-    let expected: config::Config =
-        serde_json::from_reader(reader).expect(&format!("Invalid format {}", path));
-    expected
 }
 
 #[derive(Parser, Debug)]
@@ -248,78 +149,4 @@ enum Commands {
         #[arg(short, long)]
         file: String,
     },
-}
-
-#[cfg(test)]
-pub mod tests {
-    use crate::{
-        config::{self, GitAppender, GitConfig, GitLink},
-        parse_config,
-    };
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn test_example_config() {
-        assert_eq!(
-            config::Config {
-                appenders: vec![
-                    (
-                        "/home/someone/folder".to_string(),
-                        GitAppender {
-                            git_config: Some(GitConfig {
-                                username: "someone".to_owned(),
-                                token_file: "/passwords/github_token".to_owned()
-                            }),
-                            links: vec![
-                                (
-                                    "/home/local/plaintext_file".to_string(),
-                                    GitLink {
-                                        source_path: "file_in_git".to_string(),
-                                        password_file: None,
-                                        source_branch: Some("chore/special-branch".to_owned()),
-                                        remove_lines: Some(
-                                            vec![String::from("first_ignored_line")]
-                                                .into_iter()
-                                                .collect()
-                                        ),
-                                    }
-                                ),
-                                (
-                                    "/home/local/encrypted/plaintext_file".to_string(),
-                                    GitLink {
-                                        source_path: "other_file_in_git".to_string(),
-                                        password_file: Some(String::from("/home/password-file")),
-                                        source_branch: None,
-                                        remove_lines: None,
-                                    }
-                                )
-                            ]
-                            .into_iter()
-                            .collect()
-                        }
-                    ),
-                    (
-                        "/home/some/other/folder/".to_string(),
-                        GitAppender {
-                            git_config: None,
-                            links: vec![(
-                                "/plaintext_file".to_string(),
-                                GitLink {
-                                    source_path: "file_in_git".to_string(),
-                                    password_file: None,
-                                    source_branch: None,
-                                    remove_lines: None
-                                }
-                            ),]
-                            .into_iter()
-                            .collect()
-                        }
-                    )
-                ]
-                .into_iter()
-                .collect()
-            },
-            parse_config(String::from("tests/example-config.json"))
-        );
-    }
 }
