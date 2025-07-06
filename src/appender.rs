@@ -1,4 +1,5 @@
 use std::collections::{BTreeSet, HashSet};
+use std::str;
 
 use git2::Repository;
 
@@ -58,6 +59,7 @@ pub fn append(
         sum = sum
             .into_iter()
             .filter(|line| !rm_lines_bytes.contains(line))
+            .filter(|line| str::from_utf8(line).is_ok())
             .collect();
     }
 
