@@ -58,7 +58,7 @@ pub fn append(
     sum = sum
         .into_iter()
         .filter(|line| !rm_lines_bytes.contains(line))
-        .filter(|line| line.iter().all(|c| c == &b'0'))
+        .filter(|line| !line.iter().all(|c| c == &b'0'))
         .filter(|line| str::from_utf8(line).is_ok())
         .collect();
 
