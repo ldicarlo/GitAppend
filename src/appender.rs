@@ -62,10 +62,10 @@ pub fn append(
         .filter(|line| str::from_utf8(line).is_ok())
         .collect();
 
-    // if local_hash_set == remote_hash_set {
-    //     log::debug!("No changes");
-    //     return (None, None);
-    // }
+    if local_hash_set == remote_hash_set {
+        println!("No changes");
+        return (None, None);
+    }
 
     let joined_sum: Vec<Vec<u8>> = sum.clone().into_iter().collect();
     let sum_with_endline = last_char(joined_sum.join(&b'\n'));
