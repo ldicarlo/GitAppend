@@ -67,6 +67,11 @@ pub fn process_file(
         final_rw_content.clone(),
         rm_lines.clone(),
     );
+    println!(
+        "Result was (local {},remote {})",
+        local_result.is_some(),
+        remote_result.is_some()
+    );
 
     // println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
     if let Some(local_content) = local_result {

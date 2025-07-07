@@ -8,7 +8,6 @@ use clap::{Parser, Subcommand};
 use config::GitConfig;
 use git::{commit_and_push, signature};
 use glob::glob;
-use log::{debug, LevelFilter};
 use std::collections::HashSet;
 mod age;
 mod appender;
@@ -19,12 +18,7 @@ mod file;
 mod git;
 
 fn main() {
-    // env_logger::init();
-    std::env::set_var("RUST_LOG", "debug");
-    let _ = systemd_journal_logger::JournalLog::new().unwrap().install();
-    log::set_max_level(LevelFilter::Debug);
     let args = Cli::parse();
-    debug!("LOG test");
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
         Commands::Cat {
@@ -33,11 +27,12 @@ fn main() {
             repository_location,
         } => decrypt_file(config_path, repository_location, file),
         Commands::CatAppend { file_one, file_two } => {
-            let file_one = get_file_contents_as_lines(&file_one).unwrap_or(Vec::new());
-            let file_two = get_file_contents_as_lines(&file_two).unwrap_or(Vec::new());
+            let file_one_content = get_file_contents_as_lines(&file_one).unwrap_or(Vec::new());
+            let file_two_content = get_file_contents_as_lines(&file_two).unwrap_or(Vec::new());
 
-            let (result, _) = append(file_one, file_two, HashSet::new());
-            println!("{:?}", result);
+            let (local, remote) = append(file_one_content, file_two_content, HashSet::new());
+            println!("{}: {:?}", file_one, local);
+            println!("{}: {:?}", file_two, remote);
         }
     }
 }
@@ -120,7 +115,7 @@ fn main_run(path: String) {
                 let status = entry.status();
                 let path = entry.path().unwrap_or_default();
 
-                log::debug!("File: {}, {:?}", path, status.is_index_modified());
+                println!("File: {}, {:?}", path, status.is_index_modified());
             }
             let sign = signature();
             commit_and_push(&repo, credentials, &sign, files);

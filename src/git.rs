@@ -35,10 +35,10 @@ fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
         .add_all(["*"].iter(), IndexAddOption::FORCE, None)
         .unwrap();
     let oid = index.write_tree().unwrap();
-    log::debug!("oid: {:?}", oid);
+    println!("oid: {:?}", oid);
     index.write().unwrap();
     let tree = repo.find_tree(oid).unwrap();
-    log::debug!("tree: {:?}", tree);
+    println!("tree: {:?}", tree);
     repo.commit(
         Some("HEAD"),
         &sign,
@@ -54,7 +54,7 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: S
     let mut remote = repo.find_remote("http-origin").unwrap();
     let mut fetch_options = FetchOptions::default();
     fetch_options.remote_callbacks(create_callbacks(credentials.clone()));
-    log::debug!("{:?}", credentials);
+    println!("{:?}", credentials);
     remote
         .connect_auth(Direction::Fetch, Some(create_callbacks(credentials)), None)
         .unwrap();
@@ -67,7 +67,7 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: S
         .fetch(&[&branch], Some(&mut fetch_options), None)
         .unwrap();
     repo.fetchhead_foreach(|name, _, _, merge| {
-        log::debug!("{} : {}", name, merge);
+        println!("{} : {}", name, merge);
         if merge {
             return true;
         }
@@ -87,7 +87,7 @@ pub fn signature() -> Signature<'static> {
 
 fn push(repo: &Repository, credentials: Option<(String, String)>) {
     let mut remote = repo.find_remote("http-origin").unwrap();
-    log::debug!("URL: {:?}", remote.url());
+    println!("URL: {:?}", remote.url());
     // repo.remote_add_push("origin", "refs/heads/master:refs/heads/master")
     //     .unwrap();
 
