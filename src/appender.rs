@@ -51,17 +51,16 @@ pub fn append(
     sum.append(&mut remote_hash_set.clone());
     sum.append(&mut local_hash_set.clone());
 
-    if !remove_lines.is_empty() {
-        let rm_lines_bytes: Vec<Vec<u8>> = remove_lines
-            .into_iter()
-            .map(|line| line.as_bytes().to_owned())
-            .collect();
-        sum = sum
-            .into_iter()
-            .filter(|line| !rm_lines_bytes.contains(line))
-            .filter(|line| str::from_utf8(line).is_ok())
-            .collect();
-    }
+    let rm_lines_bytes: Vec<Vec<u8>> = remove_lines
+        .into_iter()
+        .map(|line| line.as_bytes().to_owned())
+        .collect();
+    sum = sum
+        .into_iter()
+        .filter(|line| !rm_lines_bytes.contains(line))
+        .filter(|line| line.iter().all(|c| c == &b'0'))
+        .filter(|line| str::from_utf8(line).is_ok())
+        .collect();
 
     if local_hash_set == remote_hash_set {
         return (None, None);
