@@ -1,19 +1,21 @@
+use crate::{
+    appender::append,
+    core::{decrypt_file, process_file},
+    file::{get_file_contents_as_lines, get_file_contents_strip_final_end_line, parse_config},
+    git::{fetch, open},
+};
 use clap::{Parser, Subcommand};
 use config::GitConfig;
 use git::{commit_and_push, signature};
 use glob::glob;
 use log::{debug, LevelFilter};
+use std::collections::HashSet;
+mod age;
 mod appender;
+mod config;
 mod core;
 mod encryption;
 mod file;
-use crate::{
-    core::{decrypt_file, process_file},
-    file::{get_file_contents_as_lines, get_file_contents_strip_final_end_line, parse_config},
-    git::{fetch, open},
-};
-mod age;
-mod config;
 mod git;
 
 fn main() {
@@ -30,6 +32,13 @@ fn main() {
             file,
             repository_location,
         } => decrypt_file(config_path, repository_location, file),
+        Commands::CatAppend { file_one, file_two } => {
+            let file_one = get_file_contents_as_lines(&file_one).unwrap_or(Vec::new());
+            let file_two = get_file_contents_as_lines(&file_two).unwrap_or(Vec::new());
+
+            let (result, _) = append(file_one, file_two, HashSet::new());
+            println!("{:?}", result);
+        }
     }
 }
 
@@ -148,5 +157,17 @@ enum Commands {
         /// File to decrypt (for testing/debugging purposes)
         #[arg(short, long)]
         file: String,
+    },
+
+    /// Output the result of the append merge between two files.
+    #[command(arg_required_else_help = true)]
+    CatAppend {
+        /// File 1 (for testing/debugging purposes)
+        #[arg(long)]
+        file_one: String,
+
+        /// File 2 (for testing/debugging purposes)
+        #[arg(long)]
+        file_two: String,
     },
 }
