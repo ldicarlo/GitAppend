@@ -54,7 +54,7 @@ pub fn process_file(
     git_folder: &String,
     repo: &Repository,
 ) -> (Vec<String>, bool) {
-    log::info!("Processing: {}", file_path);
+    log::debug!("Processing: {}", file_path);
     let mut needs_commit = false;
     let mut files = Vec::new();
     let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());

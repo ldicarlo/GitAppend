@@ -8,6 +8,10 @@ use clap::{Parser, Subcommand};
 use config::GitConfig;
 use git::{commit_and_push, signature};
 use glob::glob;
+<<<<<<< HEAD
+=======
+use log::LevelFilter;
+>>>>>>> c35a947 (wip)
 use std::collections::HashSet;
 mod age;
 mod appender;
@@ -19,7 +23,6 @@ mod git;
 
 fn main() {
     let args = Cli::parse();
-    println!("starting");
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
         Commands::Cat {
