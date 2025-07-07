@@ -54,7 +54,7 @@ pub fn process_file(
     git_folder: &String,
     repo: &Repository,
 ) -> (Vec<String>, bool) {
-    println!("Processing: {}", file_path);
+    log::info!("Processing: {}", file_path);
     let mut needs_commit = false;
     let mut files = Vec::new();
     let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());
@@ -66,6 +66,11 @@ pub fn process_file(
         current_ro_content.clone(),
         final_rw_content.clone(),
         rm_lines.clone(),
+    );
+    log::info!(
+        "Result was (local {},remote {})",
+        local_result.is_some(),
+        remote_result.is_some()
     );
 
     // println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
