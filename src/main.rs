@@ -8,10 +8,6 @@ use clap::{Parser, Subcommand};
 use config::GitConfig;
 use git::{commit_and_push, signature};
 use glob::glob;
-<<<<<<< HEAD
-=======
-use log::LevelFilter;
->>>>>>> c35a947 (wip)
 use std::collections::HashSet;
 mod age;
 mod appender;
