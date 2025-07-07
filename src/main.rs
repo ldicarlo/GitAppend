@@ -8,7 +8,6 @@ use clap::{Parser, Subcommand};
 use config::GitConfig;
 use git::{commit_and_push, signature};
 use glob::glob;
-use log::{debug, LevelFilter};
 use std::collections::HashSet;
 mod age;
 mod appender;
@@ -19,12 +18,8 @@ mod file;
 mod git;
 
 fn main() {
-    env_logger::init();
-    std::env::set_var("RUST_LOG", "debug");
-    let _ = systemd_journal_logger::JournalLog::new().unwrap().install();
-    log::set_max_level(LevelFilter::Debug);
     let args = Cli::parse();
-    debug!("LOG test");
+    println!("starting");
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
         Commands::Cat {
@@ -120,7 +115,7 @@ fn main_run(path: String) {
                 let status = entry.status();
                 let path = entry.path().unwrap_or_default();
 
-                log::debug!("File: {}, {:?}", path, status.is_index_modified());
+                println!("File: {}, {:?}", path, status.is_index_modified());
             }
             let sign = signature();
             commit_and_push(&repo, credentials, &sign, files);
