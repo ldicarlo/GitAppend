@@ -19,7 +19,7 @@ mod file;
 mod git;
 
 fn main() {
-    // env_logger::init();
+    env_logger::init();
     std::env::set_var("RUST_LOG", "debug");
     let _ = systemd_journal_logger::JournalLog::new().unwrap().install();
     log::set_max_level(LevelFilter::Debug);
