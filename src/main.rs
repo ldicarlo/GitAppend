@@ -1,28 +1,24 @@
-use clap::{Parser, Subcommand};
-use config::GitConfig;
-use git::{commit_and_push, signature};
-use glob::glob;
-use log::{debug, LevelFilter};
-mod appender;
-mod core;
-mod encryption;
-mod file;
 use crate::{
+    appender::append,
     core::{decrypt_file, process_file},
     file::{get_file_contents_as_lines, get_file_contents_strip_final_end_line, parse_config},
     git::{fetch, open},
 };
+use clap::{Parser, Subcommand};
+use config::GitConfig;
+use git::{commit_and_push, signature};
+use glob::glob;
+use std::collections::HashSet;
 mod age;
+mod appender;
 mod config;
+mod core;
+mod encryption;
+mod file;
 mod git;
 
 fn main() {
-    // env_logger::init();
-    std::env::set_var("RUST_LOG", "debug");
-    let _ = systemd_journal_logger::JournalLog::new().unwrap().install();
-    log::set_max_level(LevelFilter::Debug);
     let args = Cli::parse();
-    debug!("LOG test");
     match args.command {
         Commands::Run { config_path } => main_run(config_path),
         Commands::Cat {
@@ -30,6 +26,14 @@ fn main() {
             file,
             repository_location,
         } => decrypt_file(config_path, repository_location, file),
+        Commands::CatAppend { file_one, file_two } => {
+            let file_one_content = get_file_contents_as_lines(&file_one).unwrap_or(Vec::new());
+            let file_two_content = get_file_contents_as_lines(&file_two).unwrap_or(Vec::new());
+
+            let (local, remote) = append(file_one_content, file_two_content, HashSet::new());
+            println!("{}: {:?}", file_one, local);
+            println!("{}: {:?}", file_two, remote);
+        }
     }
 }
 
@@ -111,7 +115,7 @@ fn main_run(path: String) {
                 let status = entry.status();
                 let path = entry.path().unwrap_or_default();
 
-                log::debug!("File: {}, {:?}", path, status.is_index_modified());
+                println!("File: {}, {:?}", path, status.is_index_modified());
             }
             let sign = signature();
             commit_and_push(&repo, credentials, &sign, files);
@@ -148,5 +152,17 @@ enum Commands {
         /// File to decrypt (for testing/debugging purposes)
         #[arg(short, long)]
         file: String,
+    },
+
+    /// Output the result of the append merge between two files.
+    #[command(arg_required_else_help = true)]
+    CatAppend {
+        /// File 1 (for testing/debugging purposes)
+        #[arg(long)]
+        file_one: String,
+
+        /// File 2 (for testing/debugging purposes)
+        #[arg(long)]
+        file_two: String,
     },
 }

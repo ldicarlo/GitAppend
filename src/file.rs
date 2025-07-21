@@ -8,7 +8,7 @@ use std::{
 use crate::config;
 
 pub fn write_to_file(path: &String, content: &Vec<u8>) {
-    log::info!("writing to {}", path);
+    println!("writing to {}", path);
     fs::create_dir_all(Path::new(path).parent().unwrap()).unwrap();
     let mut file = File::create(path).expect(&format!("Could not find {}", path));
     file.write_all(&content).unwrap();
@@ -26,7 +26,7 @@ pub fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
 }
 
 pub fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
-    log::debug!("{}", path);
+    println!("{}", path);
     fs::read(path)
 }
 
