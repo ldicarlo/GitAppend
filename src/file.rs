@@ -91,7 +91,9 @@ pub mod tests {
                                         password_file: Some(String::from("/home/password-file")),
                                         source_branch: None,
                                         remove_lines: None,
-                                        exclude_patterns: None
+                                        exclude_patterns: Some(
+                                            vec![String::from(".*\\\\$")].into_iter().collect()
+                                        ),
                                     }
                                 )
                             ]

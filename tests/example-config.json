@@ -15,7 +15,10 @@
         },
         "/home/local/encrypted/plaintext_file": {
           "source_path": "other_file_in_git",
-          "password_file": "/home/password-file"
+          "password_file": "/home/password-file",
+          "exclude_patterns": [
+            ".*\\\\$"
+          ]
         }
       }
     },

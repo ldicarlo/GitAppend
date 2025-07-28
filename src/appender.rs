@@ -188,4 +188,20 @@ pub mod tests {
             )
         );
     }
+
+    #[test]
+    fn test_content_6() {
+        assert_eq!(
+            (
+                Some(vec![b'b', b'c', b'\n',]),
+                Some(vec![b'b', b'c', b'\n',])
+            ),
+            append(
+                vec![vec![b'd', b'\\',], vec![b'b', b'c',], vec![b'f']],
+                vec![vec![b'e', b'\\',], vec![b'b', b'c'],],
+                vec![String::from("f")].into_iter().collect(),
+                vec![String::from(".*\\\\$")].into_iter().collect(),
+            )
+        );
+    }
 }
