@@ -2,6 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::str;
 
 use git2::Repository;
+use regex::Regex;
 
 use crate::{age::decrypt, config::GitLink, file::get_file_contents, git::get_blob_from_head};
 
@@ -39,6 +40,7 @@ pub fn append(
     remote_file: Vec<Vec<u8>>,
     local_file: Vec<Vec<u8>>,
     remove_lines: HashSet<String>,
+    exclude_patterns: HashSet<String>,
 ) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
     let local_hash_set = BTreeSet::from_iter(local_file.clone());
     let remote_hash_set = BTreeSet::from_iter(remote_file.clone());
@@ -51,6 +53,11 @@ pub fn append(
     sum.append(&mut remote_hash_set.clone());
     sum.append(&mut local_hash_set.clone());
 
+    let exclude_patterns: Vec<Regex> = exclude_patterns
+        .into_iter()
+        .map(|ep| Regex::new(&ep).expect(&format!("Fail to read regex: {}", ep)))
+        .collect();
+
     let rm_lines_bytes: Vec<Vec<u8>> = remove_lines
         .into_iter()
         .map(|line| line.as_bytes().to_owned())
@@ -60,6 +67,13 @@ pub fn append(
         .filter(|line| !rm_lines_bytes.contains(line))
         .filter(|line| !line.iter().all(|c| c == &0u8))
         .filter(|line| str::from_utf8(line).is_ok())
+        .filter(|line| {
+            let str = str::from_utf8(line);
+            match str {
+                Ok(new_string) => !exclude_patterns.iter().any(|re| re.is_match(new_string)),
+                Err(_) => false,
+            }
+        })
         .collect();
 
     if local_hash_set == remote_hash_set {
@@ -102,7 +116,10 @@ pub mod tests {
 
     #[test]
     fn test_content() {
-        assert_eq!((None, None), append(Vec::new(), Vec::new(), HashSet::new()));
+        assert_eq!(
+            (None, None),
+            append(Vec::new(), Vec::new(), HashSet::new(), HashSet::new())
+        );
     }
 
     #[test]
@@ -112,6 +129,7 @@ pub mod tests {
             append(
                 vec![vec![b'a'], vec![b'b', b'c',]],
                 vec![vec![b'b', b'c'],],
+                HashSet::new(),
                 HashSet::new()
             )
         );
@@ -121,7 +139,12 @@ pub mod tests {
     fn test_content_2() {
         assert_eq!(
             (None, Some(vec![b'b', b'c', b'\n'])),
-            append(vec![], vec![vec![b'b', b'c']], HashSet::new())
+            append(
+                vec![],
+                vec![vec![b'b', b'c']],
+                HashSet::new(),
+                HashSet::new()
+            )
         );
     }
 
@@ -129,7 +152,12 @@ pub mod tests {
     fn test_content_3() {
         assert_eq!(
             (Some(vec![b'a', b'\n', b'b', b'c', b'\n']), None),
-            append(vec![vec![b'a'], vec![b'b', b'c',]], vec![], HashSet::new())
+            append(
+                vec![vec![b'a'], vec![b'b', b'c',]],
+                vec![],
+                HashSet::new(),
+                HashSet::new()
+            )
         );
     }
     #[test]
@@ -139,6 +167,7 @@ pub mod tests {
             append(
                 vec![vec![b'b'], vec![b'a']],
                 vec![vec![b'a'], vec![b'b'],],
+                HashSet::new(),
                 HashSet::new()
             )
         );
@@ -154,7 +183,8 @@ pub mod tests {
             append(
                 vec![vec![b'a'], vec![b'b', b'c',], vec![b'f']],
                 vec![vec![b'b', b'c'],],
-                vec![String::from("f")].into_iter().collect()
+                vec![String::from("f")].into_iter().collect(),
+                HashSet::new()
             )
         );
     }

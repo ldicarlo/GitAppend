@@ -30,7 +30,12 @@ fn main() {
             let file_one_content = get_file_contents_as_lines(&file_one).unwrap_or(Vec::new());
             let file_two_content = get_file_contents_as_lines(&file_two).unwrap_or(Vec::new());
 
-            let (local, remote) = append(file_one_content, file_two_content, HashSet::new());
+            let (local, remote) = append(
+                file_one_content,
+                file_two_content,
+                HashSet::new(),
+                HashSet::new(),
+            );
             println!("{}: {:?}", file_one, local);
             println!("{}: {:?}", file_two, remote);
         }

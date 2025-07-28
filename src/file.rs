@@ -81,6 +81,7 @@ pub mod tests {
                                                 .into_iter()
                                                 .collect()
                                         ),
+                                        exclude_patterns: None
                                     }
                                 ),
                                 (
@@ -90,6 +91,7 @@ pub mod tests {
                                         password_file: Some(String::from("/home/password-file")),
                                         source_branch: None,
                                         remove_lines: None,
+                                        exclude_patterns: None
                                     }
                                 )
                             ]
@@ -108,7 +110,8 @@ pub mod tests {
                                     source_path: "file_in_git".to_string(),
                                     password_file: None,
                                     source_branch: None,
-                                    remove_lines: None
+                                    remove_lines: None,
+                                    exclude_patterns: None,
                                 }
                             ),]
                             .into_iter()
@@ -119,7 +122,8 @@ pub mod tests {
                                     source_path: "folder_in_git".to_string(),
                                     password_file: None,
                                     source_branch: None,
-                                    remove_lines: None
+                                    remove_lines: None,
+                                    exclude_patterns: None,
                                 }
                             ),]
                             .into_iter()
@@ -152,7 +156,8 @@ pub mod tests {
                                 source_path: ".directory_history".to_string(),
                                 password_file: None,
                                 source_branch: None,
-                                remove_lines: None
+                                remove_lines: None,
+                                exclude_patterns: None,
                             }
                         ),]
                         .into_iter()
