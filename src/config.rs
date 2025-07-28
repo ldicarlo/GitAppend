@@ -1,6 +1,5 @@
-use std::collections::{HashMap, HashSet};
-
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -27,6 +26,7 @@ pub struct GitLink {
     // pub Option<unique>: bool
     pub password_file: Option<String>,
     pub remove_lines: Option<HashSet<String>>,
+    pub exclude_patterns: Option<HashSet<String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]

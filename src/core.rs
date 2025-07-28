@@ -58,6 +58,10 @@ pub fn process_file(
     let mut needs_commit = false;
     let mut files = Vec::new();
     let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());
+    let exclude_patterns = file_appender
+        .clone()
+        .exclude_patterns
+        .unwrap_or(HashSet::new());
     let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
     let final_rw_content = rw_contents.clone();
     let current_ro_content = &mut get_from_appender(file_appender, &repo, &repo_file_path);
@@ -66,6 +70,7 @@ pub fn process_file(
         current_ro_content.clone(),
         final_rw_content.clone(),
         rm_lines.clone(),
+        exclude_patterns.clone(),
     );
     println!(
         "Result was (local {},remote {})",
