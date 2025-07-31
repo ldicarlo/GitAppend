@@ -291,7 +291,7 @@ pub mod tests {
 
     #[test]
     fn test_remove_multilines_feature() {
-        let input = get_file_contents_as_lines(&String::from("files/multilines")).unwrap();
+        let input = get_file_contents_as_lines(&String::from("tests/multilines")).unwrap();
 
         let result = vec![
             ": this is a multiline command".as_bytes().to_owned(),
