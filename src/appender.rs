@@ -42,8 +42,18 @@ pub fn append(
     remove_lines: HashSet<String>,
     exclude_patterns: HashSet<String>,
 ) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
-    let local_hash_set = BTreeSet::from_iter(local_file.clone());
-    let remote_hash_set = BTreeSet::from_iter(remote_file.clone());
+    let local_hash_set = BTreeSet::from_iter(
+        local_file
+            .into_iter()
+            .filter(|line| !line.is_empty())
+            .clone(),
+    );
+    let remote_hash_set = BTreeSet::from_iter(
+        remote_file
+            .into_iter()
+            .filter(|line| !line.is_empty())
+            .clone(),
+    );
 
     // println!("{:?}", String::from_utf8(remote_file.clone().join(&b'\n')));
     // println!("{:?}", String::from_utf8(local_file.clone().join(&b'\n')));
@@ -64,6 +74,7 @@ pub fn append(
         .collect();
     sum = sum
         .into_iter()
+        .filter(|line| !line.is_empty())
         .filter(|line| !rm_lines_bytes.contains(line))
         .filter(|line| !line.iter().all(|c| c == &0u8))
         .filter(|line| str::from_utf8(line).is_ok())
@@ -76,10 +87,10 @@ pub fn append(
         })
         .collect();
 
-    if local_hash_set == remote_hash_set {
-        println!("No changes");
-        return (None, None);
-    }
+    // if local_hash_set == remote_hash_set {
+    //     println!("No changes");
+    //     return (None, None);
+    // }
 
     let joined_sum: Vec<Vec<u8>> = sum.clone().into_iter().collect();
     let sum_with_endline = last_char(joined_sum.join(&b'\n'));
@@ -113,6 +124,18 @@ pub mod tests {
     use std::collections::HashSet;
 
     use crate::appender::append;
+
+    #[test]
+    fn hashset_eq() {
+        assert_eq!(
+            vec![String::from("Hello")]
+                .into_iter()
+                .collect::<HashSet<String>>(),
+            vec![String::from("Hello")]
+                .into_iter()
+                .collect::<HashSet<String>>()
+        );
+    }
 
     #[test]
     fn test_content() {
