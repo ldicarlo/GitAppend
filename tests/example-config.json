@@ -18,6 +18,9 @@
           "password_file": "/home/password-file",
           "exclude_patterns": [
             ".*\\\\$"
+          ],
+          "features": [
+            "RemoveMultilinesBash"
           ]
         }
       }
