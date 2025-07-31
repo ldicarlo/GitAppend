@@ -25,7 +25,7 @@ pub fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
 }
 
 pub fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
-    println!("{}", path);
+    println!("Get file content: {}", path);
     fs::read(path)
 }
 

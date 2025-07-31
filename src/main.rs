@@ -35,6 +35,7 @@ fn main() {
                 file_two_content,
                 HashSet::new(),
                 HashSet::new(),
+                HashSet::new(),
             );
             println!("{}: {:?}", file_one, local);
             println!("{}: {:?}", file_two, remote);
@@ -120,7 +121,11 @@ fn main_run(path: String) {
                 let status = entry.status();
                 let path = entry.path().unwrap_or_default();
 
-                println!("File: {}, {:?}", path, status.is_index_modified());
+                println!(
+                    "File: {}, index changed? {:?}",
+                    path,
+                    status.is_index_modified()
+                );
             }
             let sign = signature();
             commit_and_push(&repo, credentials, &sign, files);

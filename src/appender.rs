@@ -42,23 +42,26 @@ pub fn append(
     local_file: Vec<Vec<u8>>,
     remove_lines: HashSet<String>,
     exclude_patterns: HashSet<String>,
-    //features: HashSet<Feature>,
+    features: HashSet<Feature>,
 ) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
     let local_hash_set = BTreeSet::from_iter(
-        local_file
-            .into_iter()
-            .filter(|line| !line.is_empty())
-            .clone(),
+        apply_feature_rmb(
+            local_file,
+            features.contains(&Feature::RemoveMultilinesBash),
+        )
+        .into_iter()
+        .filter(|line| !line.is_empty())
+        .clone(),
     );
     let remote_hash_set = BTreeSet::from_iter(
-        remote_file
-            .into_iter()
-            .filter(|line| !line.is_empty())
-            .clone(),
+        apply_feature_rmb(
+            remote_file,
+            features.contains(&Feature::RemoveMultilinesBash),
+        )
+        .into_iter()
+        .filter(|line| !line.is_empty())
+        .clone(),
     );
-
-    // println!("{:?}", String::from_utf8(remote_file.clone().join(&b'\n')));
-    // println!("{:?}", String::from_utf8(local_file.clone().join(&b'\n')));
 
     let mut sum = BTreeSet::new();
 
@@ -121,27 +124,43 @@ fn last_char(mut content: Vec<u8>) -> Vec<u8> {
     content
 }
 
+fn apply_feature_rmb(content: Vec<Vec<u8>>, feature: bool) -> Vec<Vec<u8>> {
+    if feature {
+        return feature_remove_multilines_bash(content);
+    }
+    content
+}
+
 fn feature_remove_multilines_bash(content: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
     content
         .into_iter()
-        .fold((Vec::new(), None), |(acc:, maybe_line), current| {
-            let current_is_multi = current.ends_with(&[b'\\']);
-            if let Some(line) = maybe_line {
-                line.push(current);
-
+        .fold(
+            (Vec::new(), None) as (Vec<Vec<u8>>, Option<Vec<u8>>),
+            |(mut acc, maybe_line), mut current| {
+                let current_is_multi = current.ends_with(&[b'\\']);
                 if current_is_multi {
-                    (acc, maybe_line)
+                    current.remove(current.len() - 1);
+                    current.push(b' ');
+                }
+
+                if let Some(mut line) = maybe_line {
+                    let _ = &line.append(&mut current.clone());
+
+                    if current_is_multi {
+                        (acc, Some(line))
+                    } else {
+                        acc.push(line);
+                        (acc, None)
+                    }
+                } else if current_is_multi {
+                    (acc, Some(current))
                 } else {
                     acc.push(current);
                     (acc, None)
                 }
-            } else if current_is_multi {
-                (acc, Some(current))
-            } else {
-                acc.push(current);
-                (acc, None)
-            }
-        })
+            },
+        )
+        .0
 }
 
 #[cfg(test)]
@@ -152,7 +171,7 @@ pub mod tests {
 
     use crate::{
         appender::{append, feature_remove_multilines_bash},
-        file::get_file_contents_strip_final_end_line,
+        file::get_file_contents_as_lines,
     };
 
     #[test]
@@ -171,7 +190,13 @@ pub mod tests {
     fn test_content() {
         assert_eq!(
             (None, None),
-            append(Vec::new(), Vec::new(), HashSet::new(), HashSet::new())
+            append(
+                Vec::new(),
+                Vec::new(),
+                HashSet::new(),
+                HashSet::new(),
+                HashSet::new()
+            )
         );
     }
 
@@ -183,7 +208,8 @@ pub mod tests {
                 vec![vec![b'a'], vec![b'b', b'c',]],
                 vec![vec![b'b', b'c'],],
                 HashSet::new(),
-                HashSet::new()
+                HashSet::new(),
+                HashSet::new(),
             )
         );
     }
@@ -196,7 +222,8 @@ pub mod tests {
                 vec![],
                 vec![vec![b'b', b'c']],
                 HashSet::new(),
-                HashSet::new()
+                HashSet::new(),
+                HashSet::new(),
             )
         );
     }
@@ -209,7 +236,8 @@ pub mod tests {
                 vec![vec![b'a'], vec![b'b', b'c',]],
                 vec![],
                 HashSet::new(),
-                HashSet::new()
+                HashSet::new(),
+                HashSet::new(),
             )
         );
     }
@@ -221,7 +249,8 @@ pub mod tests {
                 vec![vec![b'b'], vec![b'a']],
                 vec![vec![b'a'], vec![b'b'],],
                 HashSet::new(),
-                HashSet::new()
+                HashSet::new(),
+                HashSet::new(),
             )
         );
     }
@@ -237,7 +266,8 @@ pub mod tests {
                 vec![vec![b'a'], vec![b'b', b'c',], vec![b'f']],
                 vec![vec![b'b', b'c'],],
                 vec![String::from("f")].into_iter().collect(),
-                HashSet::new()
+                HashSet::new(),
+                HashSet::new(),
             )
         );
     }
@@ -254,14 +284,14 @@ pub mod tests {
                 vec![vec![b'e', b'\\',], vec![b'b', b'c'],],
                 vec![String::from("f")].into_iter().collect(),
                 vec![String::from(".*\\\\$")].into_iter().collect(),
+                HashSet::new(),
             )
         );
     }
 
     #[test]
     fn test_remove_multilines_feature() {
-        let input =
-            get_file_contents_strip_final_end_line(&String::from("files/multilines")).unwrap();
+        let input = get_file_contents_as_lines(&String::from("files/multilines")).unwrap();
 
         let result = vec![
             ": this is a multiline command".as_bytes().to_owned(),
@@ -274,11 +304,11 @@ pub mod tests {
                 .into_iter()
                 .map(|s| std::str::from_utf8(&s).unwrap().to_string())
                 .collect::<Vec<String>>(),
-            feature_remove_multilines_bash(vec![input.clone()])
+            feature_remove_multilines_bash(input.clone())
                 .into_iter()
                 .map(|s| std::str::from_utf8(&s).unwrap().to_string())
                 .collect::<Vec<String>>(),
         );
-        assert_eq!(result, feature_remove_multilines_bash(vec![input]));
+        assert_eq!(result, feature_remove_multilines_bash(input));
     }
 }
