@@ -4,6 +4,7 @@ use std::str;
 use git2::Repository;
 use regex::Regex;
 
+use crate::config::Feature;
 use crate::{age::decrypt, config::GitLink, file::get_file_contents, git::get_blob_from_head};
 
 pub fn get_from_appender(
@@ -41,6 +42,7 @@ pub fn append(
     local_file: Vec<Vec<u8>>,
     remove_lines: HashSet<String>,
     exclude_patterns: HashSet<String>,
+    //features: HashSet<Feature>,
 ) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
     let local_hash_set = BTreeSet::from_iter(
         local_file
@@ -119,11 +121,17 @@ fn last_char(mut content: Vec<u8>) -> Vec<u8> {
     content
 }
 
+fn feature_remove_multilines_bash(content: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
+    return content;
+}
+
 #[cfg(test)]
 pub mod tests {
     use std::collections::HashSet;
 
-    use crate::appender::append;
+    use pretty_assertions::assert_eq;
+
+    use crate::appender::{append, feature_remove_multilines_bash};
 
     #[test]
     fn hashset_eq() {
@@ -226,5 +234,28 @@ pub mod tests {
                 vec![String::from(".*\\\\$")].into_iter().collect(),
             )
         );
+    }
+
+    #[test]
+    fn test_remove_multilines_feature() {
+        let input = ": same\\\nexact\\\nline\\\n: otherline".as_bytes().to_vec();
+
+        let result = vec![
+            ":same exact line".as_bytes().to_owned(),
+            "other line".as_bytes().to_owned(),
+        ];
+
+        assert_eq!(
+            result
+                .clone()
+                .into_iter()
+                .map(|s| std::str::from_utf8(&s).unwrap().to_string())
+                .collect::<Vec<String>>(),
+            feature_remove_multilines_bash(vec![input.clone()])
+                .into_iter()
+                .map(|s| std::str::from_utf8(&s).unwrap().to_string())
+                .collect::<Vec<String>>(),
+        );
+        assert_eq!(result, feature_remove_multilines_bash(vec![input]));
     }
 }
