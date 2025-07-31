@@ -122,7 +122,26 @@ fn last_char(mut content: Vec<u8>) -> Vec<u8> {
 }
 
 fn feature_remove_multilines_bash(content: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
-    return content;
+    content
+        .into_iter()
+        .fold((Vec::new(), None), |(acc:, maybe_line), current| {
+            let current_is_multi = current.ends_with(&[b'\\']);
+            if let Some(line) = maybe_line {
+                line.push(current);
+
+                if current_is_multi {
+                    (acc, maybe_line)
+                } else {
+                    acc.push(current);
+                    (acc, None)
+                }
+            } else if current_is_multi {
+                (acc, Some(current))
+            } else {
+                acc.push(current);
+                (acc, None)
+            }
+        })
 }
 
 #[cfg(test)]
@@ -131,7 +150,10 @@ pub mod tests {
 
     use pretty_assertions::assert_eq;
 
-    use crate::appender::{append, feature_remove_multilines_bash};
+    use crate::{
+        appender::{append, feature_remove_multilines_bash},
+        file::get_file_contents_strip_final_end_line,
+    };
 
     #[test]
     fn hashset_eq() {
@@ -238,11 +260,12 @@ pub mod tests {
 
     #[test]
     fn test_remove_multilines_feature() {
-        let input = ": same\\\nexact\\\nline\\\n: otherline".as_bytes().to_vec();
+        let input =
+            get_file_contents_strip_final_end_line(&String::from("files/multilines")).unwrap();
 
         let result = vec![
-            ":same exact line".as_bytes().to_owned(),
-            "other line".as_bytes().to_owned(),
+            ": this is a multiline command".as_bytes().to_owned(),
+            ": this is not".as_bytes().to_owned(),
         ];
 
         assert_eq!(
