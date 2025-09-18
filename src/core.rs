@@ -70,11 +70,18 @@ pub fn process_file(
         exclude_patterns,
         features,
     );
-    println!(
-        "Result changed? (local {}, remote {})",
-        local_result.is_some(),
-        remote_result.is_some()
-    );
+    // println!(
+    //     "Result changed? (local {}, remote {})",
+    //     local_result.is_some(),
+    //     remote_result.is_some()
+    // );
+
+    if remote_result.is_some() {
+        println!("{:?}", remote_result.clone().map(|r| String::from_utf8(r)));
+    }
+    if local_result.is_some() {
+        println!("{:?}", local_result.clone().map(|r| String::from_utf8(r)));
+    }
 
     if let Some(local_content) = local_result {
         write_to_file(file_path, &local_content.clone());
