@@ -20,7 +20,10 @@ mod git;
 fn main() {
     let args = Cli::parse();
     match args.command {
-        Commands::Run { config_path } => main_run(config_path),
+        Commands::Run {
+            config_path,
+            dry_run,
+        } => main_run(config_path, dry_run),
         Commands::Cat {
             config_path,
             file,
@@ -43,7 +46,8 @@ fn main() {
     }
 }
 
-fn main_run(path: String) {
+fn main_run(path: String, dry_run: bool) {
+    println!("{dry_run}");
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
         let mut files = Vec::new();
@@ -147,6 +151,9 @@ enum Commands {
         /// Configuration file location (see `tests/example-config.json`).
         #[arg(short, long)]
         config_path: String,
+
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Read a file as the run command would read it, to see what it contains, from your config file.
     #[command(arg_required_else_help = true)]
