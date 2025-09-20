@@ -1,11 +1,10 @@
+use crate::config;
 use std::fs::File;
 use std::path::Path;
 use std::{
     fs::{self},
     io::{self, BufRead, BufReader, Write},
 };
-
-use crate::config;
 
 pub fn write_to_file(path: &String, content: &Vec<u8>) {
     println!("writing to {}", path);
@@ -26,7 +25,7 @@ pub fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
 }
 
 pub fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
-    println!("{}", path);
+    println!("Get file content: {}", path);
     fs::read(path)
 }
 
@@ -52,7 +51,7 @@ pub fn parse_config(path: String) -> config::Config {
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        config::{self, GitAppender, GitConfig, GitLink},
+        config::{self, Feature, GitAppender, GitConfig, GitLink},
         parse_config,
     };
     use pretty_assertions::assert_eq;
@@ -81,7 +80,8 @@ pub mod tests {
                                                 .into_iter()
                                                 .collect()
                                         ),
-                                        exclude_patterns: None
+                                        exclude_patterns: None,
+                                        features: None,
                                     }
                                 ),
                                 (
@@ -93,6 +93,11 @@ pub mod tests {
                                         remove_lines: None,
                                         exclude_patterns: Some(
                                             vec![String::from(".*\\\\$")].into_iter().collect()
+                                        ),
+                                        features: Some(
+                                            vec![Feature::RemoveMultilinesBash]
+                                                .into_iter()
+                                                .collect()
                                         ),
                                     }
                                 )
@@ -114,6 +119,7 @@ pub mod tests {
                                     source_branch: None,
                                     remove_lines: None,
                                     exclude_patterns: None,
+                                    features: None,
                                 }
                             ),]
                             .into_iter()
@@ -126,6 +132,7 @@ pub mod tests {
                                     source_branch: None,
                                     remove_lines: None,
                                     exclude_patterns: None,
+                                    features: None,
                                 }
                             ),]
                             .into_iter()
@@ -160,6 +167,7 @@ pub mod tests {
                                 source_branch: None,
                                 remove_lines: None,
                                 exclude_patterns: None,
+                                features: None,
                             }
                         ),]
                         .into_iter()

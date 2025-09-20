@@ -54,7 +54,6 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: S
     let mut remote = repo.find_remote("http-origin").unwrap();
     let mut fetch_options = FetchOptions::default();
     fetch_options.remote_callbacks(create_callbacks(credentials.clone()));
-    println!("{:?}", credentials);
     remote
         .connect_auth(Direction::Fetch, Some(create_callbacks(credentials)), None)
         .unwrap();

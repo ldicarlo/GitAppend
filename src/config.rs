@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
+pub enum Feature {
+    RemoveMultilinesBash,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -27,6 +32,7 @@ pub struct GitLink {
     pub password_file: Option<String>,
     pub remove_lines: Option<HashSet<String>>,
     pub exclude_patterns: Option<HashSet<String>>,
+    pub features: Option<HashSet<Feature>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
