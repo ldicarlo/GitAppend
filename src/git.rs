@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use git2::{
-    Cred, Direction, FetchOptions, IndexAddOption, Oid, PushOptions, RemoteCallbacks, Repository,
-    Signature,
+    Cred, Direction, FetchOptions, Index, IndexAddOption, Oid, PushOptions, RemoteCallbacks,
+    Repository, Signature,
 };
 
 pub fn open(path: &String) -> Repository {
@@ -15,11 +15,12 @@ pub fn commit_and_push(
     sign: &Signature,
     files: Vec<String>,
 ) {
-    let _oid = commit(repo, sign, files);
-    push(repo, credentials);
+    if let Some(_oid) = commit(repo, sign, files) {
+        push(repo, credentials);
+    }
 }
 
-fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
+fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Option<Oid> {
     let parent_commit = repo
         .head()
         .unwrap()
@@ -30,24 +31,28 @@ fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Oid {
         .into_commit()
         .unwrap();
 
-    let mut index = repo.index().unwrap();
+    let mut index: Index = repo.index().unwrap();
     index
         .add_all(["*"].iter(), IndexAddOption::FORCE, None)
         .unwrap();
-    let oid = index.write_tree().unwrap();
-    println!("oid: {:?}", oid);
-    index.write().unwrap();
-    let tree = repo.find_tree(oid).unwrap();
-    println!("tree: {:?}", tree);
-    repo.commit(
-        Some("HEAD"),
-        &sign,
-        &sign,
-        "chore(append)",
-        &tree,
-        &[&parent_commit],
-    )
-    .unwrap()
+    if index.is_empty() {
+        None
+    } else {
+        let oid = index.write_tree().unwrap();
+        println!("oid: {:?}", oid);
+        index.write().unwrap();
+        let tree = repo.find_tree(oid).unwrap();
+        println!("tree: {:?}", tree);
+        repo.commit(
+            Some("HEAD"),
+            &sign,
+            &sign,
+            "chore(append)",
+            &tree,
+            &[&parent_commit],
+        )
+        .ok()
+    }
 }
 
 pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: String) {

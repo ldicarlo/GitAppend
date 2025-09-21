@@ -49,9 +49,8 @@ pub fn process_file(
     repo_file_path: String,
     git_folder: &String,
     repo: &Repository,
-) -> (Vec<String>, bool) {
+) -> Vec<String> {
     println!("Processing: {}", file_path);
-    let mut needs_commit = false;
     let mut files = Vec::new();
     let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());
     let exclude_patterns = file_appender
@@ -70,18 +69,23 @@ pub fn process_file(
         exclude_patterns,
         features,
     );
-    println!(
-        "Result changed? (local {}, remote {})",
-        local_result.is_some(),
-        remote_result.is_some()
-    );
+    // println!(
+    //     "Result changed? (local {}, remote {})",
+    //     local_result.is_some(),
+    //     remote_result.is_some()
+    // );
+
+    if remote_result.is_some() {
+        println!("{:?}", remote_result.clone().map(|r| String::from_utf8(r)));
+    }
+    if local_result.is_some() {
+        println!("{:?}", local_result.clone().map(|r| String::from_utf8(r)));
+    }
 
     if let Some(local_content) = local_result {
         write_to_file(file_path, &local_content.clone());
     }
     if let Some(content_to_encrypt) = remote_result {
-        needs_commit = true;
-
         let final_ro_content = if let Some(password_file) = file_appender.clone().password_file {
             let passphrase = get_file_contents(&password_file).unwrap();
             encrypt(
@@ -97,5 +101,5 @@ pub fn process_file(
         );
         files.push(repo_file_path.clone());
     }
-    (files, needs_commit)
+    files
 }
