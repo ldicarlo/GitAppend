@@ -1,3 +1,4 @@
+use crate::config;
 use std::fs::File;
 use std::path::Path;
 use std::{
@@ -5,10 +6,8 @@ use std::{
     io::{self, BufRead, BufReader, Write},
 };
 
-use crate::config;
-
 pub fn write_to_file(path: &String, content: &Vec<u8>) {
-    log::info!("writing to {}", path);
+    println!("writing to {}", path);
     fs::create_dir_all(Path::new(path).parent().unwrap()).unwrap();
     let mut file = File::create(path).expect(&format!("Could not find {}", path));
     file.write_all(&content).unwrap();
@@ -26,7 +25,7 @@ pub fn get_file_contents_as_lines(path: &String) -> io::Result<Vec<Vec<u8>>> {
 }
 
 pub fn get_file_contents(path: &String) -> Result<Vec<u8>, std::io::Error> {
-    log::debug!("{}", path);
+    println!("Get file content: {}", path);
     fs::read(path)
 }
 
@@ -52,7 +51,7 @@ pub fn parse_config(path: String) -> config::Config {
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        config::{self, GitAppender, GitConfig, GitLink},
+        config::{self, Feature, GitAppender, GitConfig, GitLink},
         parse_config,
     };
     use pretty_assertions::assert_eq;
@@ -81,6 +80,8 @@ pub mod tests {
                                                 .into_iter()
                                                 .collect()
                                         ),
+                                        exclude_patterns: None,
+                                        features: None,
                                     }
                                 ),
                                 (
@@ -90,6 +91,14 @@ pub mod tests {
                                         password_file: Some(String::from("/home/password-file")),
                                         source_branch: None,
                                         remove_lines: None,
+                                        exclude_patterns: Some(
+                                            vec![String::from(".*\\\\$")].into_iter().collect()
+                                        ),
+                                        features: Some(
+                                            vec![Feature::RemoveMultilinesBash]
+                                                .into_iter()
+                                                .collect()
+                                        ),
                                     }
                                 )
                             ]
@@ -108,7 +117,9 @@ pub mod tests {
                                     source_path: "file_in_git".to_string(),
                                     password_file: None,
                                     source_branch: None,
-                                    remove_lines: None
+                                    remove_lines: None,
+                                    exclude_patterns: None,
+                                    features: None,
                                 }
                             ),]
                             .into_iter()
@@ -119,7 +130,9 @@ pub mod tests {
                                     source_path: "folder_in_git".to_string(),
                                     password_file: None,
                                     source_branch: None,
-                                    remove_lines: None
+                                    remove_lines: None,
+                                    exclude_patterns: None,
+                                    features: None,
                                 }
                             ),]
                             .into_iter()
@@ -152,7 +165,9 @@ pub mod tests {
                                 source_path: ".directory_history".to_string(),
                                 password_file: None,
                                 source_branch: None,
-                                remove_lines: None
+                                remove_lines: None,
+                                exclude_patterns: None,
+                                features: None,
                             }
                         ),]
                         .into_iter()

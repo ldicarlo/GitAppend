@@ -39,10 +39,6 @@ pub fn decrypt_file(path: String, repository_location: String, file: String) {
         .source_branch
         .unwrap_or("master".to_owned());
     fetch(&repo, credentials, source_branch);
-    // println!(
-    //     "{}",
-    //     String::from_utf8(get_from_appender(file_appender, &repo).join(&b'\n')).unwrap()
-    // );
 }
 use crate::get_file_contents_as_lines;
 use std::collections::HashSet;
@@ -58,17 +54,28 @@ pub fn process_file(
     let mut needs_commit = false;
     let mut files = Vec::new();
     let rm_lines = file_appender.clone().remove_lines.unwrap_or(HashSet::new());
+    let exclude_patterns = file_appender
+        .clone()
+        .exclude_patterns
+        .unwrap_or(HashSet::new());
+    let features = file_appender.clone().features.unwrap_or(HashSet::new());
     let rw_contents = get_file_contents_as_lines(file_path).unwrap_or(Vec::new());
     let final_rw_content = rw_contents.clone();
     let current_ro_content = &mut get_from_appender(file_appender, &repo, &repo_file_path);
 
     let (local_result, remote_result) = append(
         current_ro_content.clone(),
-        final_rw_content.clone(),
-        rm_lines.clone(),
+        final_rw_content,
+        rm_lines,
+        exclude_patterns,
+        features,
+    );
+    println!(
+        "Result changed? (local {}, remote {})",
+        local_result.is_some(),
+        remote_result.is_some()
     );
 
-    // println!("result: {:?}", result.clone().map(|r| String::from_utf8(r)));
     if let Some(local_content) = local_result {
         write_to_file(file_path, &local_content.clone());
     }
