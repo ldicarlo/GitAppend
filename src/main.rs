@@ -74,22 +74,22 @@ fn main_run(path: String, dry_run: bool) {
         );
         fetch(&repo, credentials.clone(), "master".to_owned());
         //pull(&repo, credentials.clone());
-        let mut needs_commit = false;
+
         for (file_path, file_appender) in appender.links.iter() {
-            let (new_files, new_needs_commit) = process_file(
+            let new_files = process_file(
                 file_appender,
                 file_path,
                 file_appender.source_path.to_owned(),
                 git_folder,
                 &repo,
             );
-            needs_commit = needs_commit || new_needs_commit;
+
             files.extend(new_files);
         }
         for (file_path, folder_appender) in appender.folder_links.iter() {
             for entry in glob(&format!("{}/**/*", file_path)).expect("Failed to read glob pattern")
             {
-                let (new_files, new_needs_commit) = match entry {
+                let new_files = match entry {
                     Ok(path) => {
                         if path.is_file() {
                             let local_path = path.strip_prefix(file_path).unwrap();
@@ -106,34 +106,20 @@ fn main_run(path: String, dry_run: bool) {
                             )
                         } else {
                             println!("Ignored folder or link: {:?}", path);
-                            (Vec::new(), false)
+                            Vec::new()
                         }
                     }
                     Err(e) => {
                         println!("Ignored: {:?}", e);
-                        (Vec::new(), false)
+                        Vec::new()
                     }
                 };
-                needs_commit = needs_commit || new_needs_commit;
                 files.extend(new_files);
             }
         }
-        if needs_commit {
-            let statuses = repo.statuses(None).unwrap();
 
-            for entry in statuses.iter() {
-                let status = entry.status();
-                let path = entry.path().unwrap_or_default();
-
-                println!(
-                    "File: {}, index changed? {:?}",
-                    path,
-                    status.is_index_modified()
-                );
-            }
-            let sign = signature();
-            commit_and_push(&repo, credentials, &sign, files);
-        }
+        let sign = signature();
+        commit_and_push(&repo, credentials, &sign, files);
     }
 }
 
