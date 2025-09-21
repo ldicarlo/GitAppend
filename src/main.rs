@@ -20,7 +20,10 @@ mod git;
 fn main() {
     let args = Cli::parse();
     match args.command {
-        Commands::Run { config_path } => main_run(config_path),
+        Commands::Run {
+            config_path,
+            dry_run,
+        } => main_run(config_path, dry_run),
         Commands::Cat {
             config_path,
             file,
@@ -43,7 +46,8 @@ fn main() {
     }
 }
 
-fn main_run(path: String) {
+fn main_run(path: String, dry_run: bool) {
+    println!("{dry_run}");
     let configs = parse_config(path);
     for (git_folder, appender) in configs.appenders.iter() {
         let mut files = Vec::new();
@@ -70,22 +74,22 @@ fn main_run(path: String) {
         );
         fetch(&repo, credentials.clone(), "master".to_owned());
         //pull(&repo, credentials.clone());
-        let mut needs_commit = false;
+
         for (file_path, file_appender) in appender.links.iter() {
-            let (new_files, new_needs_commit) = process_file(
+            let new_files = process_file(
                 file_appender,
                 file_path,
                 file_appender.source_path.to_owned(),
                 git_folder,
                 &repo,
             );
-            needs_commit = needs_commit || new_needs_commit;
+
             files.extend(new_files);
         }
         for (file_path, folder_appender) in appender.folder_links.iter() {
             for entry in glob(&format!("{}/**/*", file_path)).expect("Failed to read glob pattern")
             {
-                let (new_files, new_needs_commit) = match entry {
+                let new_files = match entry {
                     Ok(path) => {
                         if path.is_file() {
                             let local_path = path.strip_prefix(file_path).unwrap();
@@ -102,34 +106,20 @@ fn main_run(path: String) {
                             )
                         } else {
                             println!("Ignored folder or link: {:?}", path);
-                            (Vec::new(), false)
+                            Vec::new()
                         }
                     }
                     Err(e) => {
                         println!("Ignored: {:?}", e);
-                        (Vec::new(), false)
+                        Vec::new()
                     }
                 };
-                needs_commit = needs_commit || new_needs_commit;
                 files.extend(new_files);
             }
         }
-        if needs_commit {
-            let statuses = repo.statuses(None).unwrap();
 
-            for entry in statuses.iter() {
-                let status = entry.status();
-                let path = entry.path().unwrap_or_default();
-
-                println!(
-                    "File: {}, index changed? {:?}",
-                    path,
-                    status.is_index_modified()
-                );
-            }
-            let sign = signature();
-            commit_and_push(&repo, credentials, &sign, files);
-        }
+        let sign = signature();
+        commit_and_push(&repo, credentials, &sign, files);
     }
 }
 
@@ -147,6 +137,9 @@ enum Commands {
         /// Configuration file location (see `tests/example-config.json`).
         #[arg(short, long)]
         config_path: String,
+
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Read a file as the run command would read it, to see what it contains, from your config file.
     #[command(arg_required_else_help = true)]
