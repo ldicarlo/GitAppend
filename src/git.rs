@@ -1,26 +1,21 @@
 use std::path::Path;
 
 use git2::{
-    Cred, DiffFormat, Direction, FetchOptions, Index, IndexAddOption, IndexEntries, IndexEntry,
-    Oid, PushOptions, RemoteCallbacks, Repository, Signature,
+    Cred, DiffFormat, Direction, FetchOptions, Index, IndexAddOption, Oid, PushOptions,
+    RemoteCallbacks, Repository, Signature,
 };
 
 pub fn open(path: &String) -> Repository {
     Repository::open(path).unwrap()
 }
 
-pub fn commit_and_push(
-    repo: &Repository,
-    credentials: Option<(String, String)>,
-    sign: &Signature,
-    files: Vec<String>,
-) {
-    if let Some(_oid) = commit(repo, sign, files) {
+pub fn commit_and_push(repo: &Repository, credentials: Option<(String, String)>, sign: &Signature) {
+    if let Some(_oid) = commit(repo, sign) {
         push(repo, credentials);
     }
 }
 
-fn commit(repo: &Repository, sign: &Signature, files: Vec<String>) -> Option<Oid> {
+fn commit(repo: &Repository, sign: &Signature) -> Option<Oid> {
     let parent_commit = repo
         .head()
         .unwrap()

@@ -22,9 +22,8 @@ fn main() {
     match args.command {
         Commands::Run {
             config_path,
-            dry_run,
             include_appender,
-        } => main_run(config_path, dry_run, include_appender),
+        } => main_run(config_path, include_appender),
         Commands::Cat {
             config_path,
             file,
@@ -47,8 +46,7 @@ fn main() {
     }
 }
 
-fn main_run(path: String, dry_run: bool, maybe_include_appender: Option<String>) {
-    println!("{dry_run}");
+fn main_run(path: String, maybe_include_appender: Option<String>) {
     let configs = parse_config(path);
 
     let appenders = maybe_include_appender
@@ -86,7 +84,6 @@ fn main_run(path: String, dry_run: bool, maybe_include_appender: Option<String>)
             },
         );
         pull(&repo, credentials.clone(), "master".to_owned());
-        // pull(&repo, credentials.clone());
 
         for (file_path, file_appender) in appender.links.iter() {
             let new_files = process_file(
@@ -96,6 +93,8 @@ fn main_run(path: String, dry_run: bool, maybe_include_appender: Option<String>)
                 git_folder,
                 &repo,
             );
+
+            println!("{new_files:?}");
 
             files.extend(new_files);
         }
@@ -131,8 +130,11 @@ fn main_run(path: String, dry_run: bool, maybe_include_appender: Option<String>)
             }
         }
 
-        let sign = signature();
-        commit_and_push(&repo, credentials, &sign, files);
+        if !files.is_empty() {
+            let sign = signature();
+            commit_and_push(&repo, credentials.clone(), &sign);
+            pull(&repo, credentials.clone(), "master".to_owned());
+        }
     }
 }
 
@@ -150,9 +152,6 @@ enum Commands {
         /// Configuration file location (see `tests/example-config.json`).
         #[arg(short, long)]
         config_path: String,
-
-        #[arg(long)]
-        dry_run: bool,
 
         #[arg(long)]
         include_appender: Option<String>,
