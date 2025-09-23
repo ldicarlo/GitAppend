@@ -5,3 +5,4 @@ result
 passwords
 plaintext_files
 *.bak
+current-config.json
