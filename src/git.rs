@@ -42,7 +42,7 @@ fn commit(repo: &Repository, sign: &Signature) -> Option<Oid> {
         });
 
     index
-        .add_all(["*"].iter(), IndexAddOption::DEFAULT, None)
+        .add_all(["*"].iter(), IndexAddOption::FORCE, None)
         .unwrap();
     if index.is_empty() {
         None

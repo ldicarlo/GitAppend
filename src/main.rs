@@ -94,8 +94,6 @@ fn main_run(path: String, maybe_include_appender: Option<String>) {
                 &repo,
             );
 
-            println!("{new_files:?}");
-
             files.extend(new_files);
         }
         for (file_path, folder_appender) in appender.folder_links.iter() {
@@ -103,8 +101,9 @@ fn main_run(path: String, maybe_include_appender: Option<String>) {
             {
                 let new_files = match entry {
                     Ok(path) => {
-                        if path.is_file() {
+                        if path.is_file() && !path.to_str().unwrap().contains(".git") {
                             let local_path = path.strip_prefix(file_path).unwrap();
+
                             process_file(
                                 folder_appender,
                                 &format!("{}", path.display()),
@@ -117,7 +116,7 @@ fn main_run(path: String, maybe_include_appender: Option<String>) {
                                 &repo,
                             )
                         } else {
-                            println!("Ignored folder or link: {:?}", path);
+                            println!("Ignored folder or link: {:?} (or in .git folder)", path);
                             Vec::new()
                         }
                     }
@@ -126,6 +125,7 @@ fn main_run(path: String, maybe_include_appender: Option<String>) {
                         Vec::new()
                     }
                 };
+
                 files.extend(new_files);
             }
         }
