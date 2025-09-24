@@ -5,7 +5,7 @@ use crate::{
     appender::{append, get_from_appender},
     config::{GitConfig, GitLink},
     file::{get_file_contents, get_file_contents_strip_final_end_line, write_to_file},
-    git::{fetch, open},
+    git::{open, pull},
     parse_config,
 };
 
@@ -38,7 +38,7 @@ pub fn decrypt_file(path: String, repository_location: String, file: String) {
         .clone()
         .source_branch
         .unwrap_or("master".to_owned());
-    fetch(&repo, credentials, source_branch);
+    pull(&repo, credentials, source_branch);
 }
 use crate::get_file_contents_as_lines;
 use std::collections::HashSet;
@@ -75,12 +75,12 @@ pub fn process_file(
     //     remote_result.is_some()
     // );
 
-    if remote_result.is_some() {
-        println!("{:?}", remote_result.clone().map(|r| String::from_utf8(r)));
-    }
-    if local_result.is_some() {
-        println!("{:?}", local_result.clone().map(|r| String::from_utf8(r)));
-    }
+    // if remote_result.is_some() {
+    //     println!("{:?}", remote_result.clone().map(|r| String::from_utf8(r)));
+    // }
+    // if local_result.is_some() {
+    //     println!("{:?}", local_result.clone().map(|r| String::from_utf8(r)));
+    // }
 
     if let Some(local_content) = local_result {
         write_to_file(file_path, &local_content.clone());

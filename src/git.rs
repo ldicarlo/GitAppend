@@ -1,26 +1,21 @@
 use std::path::Path;
 
 use git2::{
-    Cred, Direction, FetchOptions, Index, IndexAddOption, Oid, PushOptions, RemoteCallbacks,
-    Repository, Signature,
+    Cred, DiffFormat, Direction, FetchOptions, Index, IndexAddOption, Oid, PushOptions,
+    RemoteCallbacks, Repository, Signature,
 };
 
 pub fn open(path: &String) -> Repository {
     Repository::open(path).unwrap()
 }
 
-pub fn commit_and_push(
-    repo: &Repository,
-    credentials: Option<(String, String)>,
-    sign: &Signature,
-    files: Vec<String>,
-) {
-    if let Some(_oid) = commit(repo, sign, files) {
+pub fn commit_and_push(repo: &Repository, credentials: Option<(String, String)>, sign: &Signature) {
+    if let Some(_oid) = commit(repo, sign) {
         push(repo, credentials);
     }
 }
 
-fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Option<Oid> {
+fn commit(repo: &Repository, sign: &Signature) -> Option<Oid> {
     let parent_commit = repo
         .head()
         .unwrap()
@@ -32,6 +27,20 @@ fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Option<Oi
         .unwrap();
 
     let mut index: Index = repo.index().unwrap();
+
+    let _ = repo
+        .diff_index_to_workdir(Some(&index), None)
+        .unwrap()
+        .print(DiffFormat::Raw, |d, h, l| {
+            println!(
+                "{:?} {:?} {:?}",
+                d,
+                h,
+                String::from_utf8(l.content().to_vec()).unwrap()
+            );
+            true
+        });
+
     index
         .add_all(["*"].iter(), IndexAddOption::FORCE, None)
         .unwrap();
@@ -55,7 +64,11 @@ fn commit(repo: &Repository, sign: &Signature, _files: Vec<String>) -> Option<Oi
     }
 }
 
-pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: String) {
+fn fetch(
+    repo: &Repository,
+    credentials: Option<(String, String)>,
+    branch: String,
+) -> Option<git2::AnnotatedCommit> {
     let mut remote = repo.find_remote("http-origin").unwrap();
     let mut fetch_options = FetchOptions::default();
     fetch_options.remote_callbacks(create_callbacks(credentials.clone()));
@@ -77,13 +90,41 @@ pub fn fetch(repo: &Repository, credentials: Option<(String, String)>, branch: S
         }
         true
     })
-    .unwrap()
+    .unwrap();
+    let fetch_head = repo.find_reference("FETCH_HEAD").unwrap();
+    repo.reference_to_annotated_commit(&fetch_head).ok()
 }
 
-// pub fn pull(repo: &Repository, credentials: Option<(String, String)>) {
-//     fetch(repo, credentials);
-//     //repo.f
-// }
+fn fast_forward(
+    repo: &Repository,
+    lb: &mut git2::Reference,
+    rc: &git2::AnnotatedCommit,
+) -> Result<(), git2::Error> {
+    let name = match lb.name() {
+        Some(s) => s.to_string(),
+        None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
+    };
+    let msg = format!("Fast-Forward: Setting {} to id: {}", name, rc.id());
+    println!("{}", msg);
+    lb.set_target(rc.id(), &msg)?;
+    repo.set_head(&name)?;
+    repo.checkout_head(Some(
+        git2::build::CheckoutBuilder::default()
+            // For some reason the force is required to make the working directory actually get updated
+            // I suspect we should be adding some logic to handle dirty working directory states
+            // but this is just an example so maybe not.
+            .force(),
+    ))?;
+    Ok(())
+}
+
+pub fn pull(repo: &Repository, credentials: Option<(String, String)>, branch: String) {
+    let fetch_commit = fetch(repo, credentials, branch.clone()).unwrap();
+    let mut r = repo
+        .find_reference(&format!("refs/heads/{}", branch))
+        .unwrap();
+    fast_forward(repo, &mut r, &fetch_commit).unwrap();
+}
 
 pub fn signature() -> Signature<'static> {
     Signature::now("Git-Append", "git-append@git").unwrap()

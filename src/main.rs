@@ -2,7 +2,7 @@ use crate::{
     appender::append,
     core::{decrypt_file, process_file},
     file::{get_file_contents_as_lines, get_file_contents_strip_final_end_line, parse_config},
-    git::{fetch, open},
+    git::{open, pull},
 };
 use clap::{Parser, Subcommand};
 use config::GitConfig;
@@ -22,8 +22,8 @@ fn main() {
     match args.command {
         Commands::Run {
             config_path,
-            dry_run,
-        } => main_run(config_path, dry_run),
+            include_appender,
+        } => main_run(config_path, include_appender),
         Commands::Cat {
             config_path,
             file,
@@ -46,10 +46,21 @@ fn main() {
     }
 }
 
-fn main_run(path: String, dry_run: bool) {
-    println!("{dry_run}");
+fn main_run(path: String, maybe_include_appender: Option<String>) {
     let configs = parse_config(path);
-    for (git_folder, appender) in configs.appenders.iter() {
+
+    let appenders = maybe_include_appender
+        .map(|include_appender| {
+            configs
+                .appenders
+                .clone()
+                .into_iter()
+                .filter(|(k, _)| k == &include_appender)
+                .collect()
+        })
+        .unwrap_or(configs.appenders);
+
+    for (git_folder, appender) in appenders.iter() {
         let mut files = Vec::new();
         let repo = open(&format!("{}/.git", git_folder));
         // let c = repo.config().unwrap();
@@ -72,8 +83,7 @@ fn main_run(path: String, dry_run: bool) {
                 )
             },
         );
-        fetch(&repo, credentials.clone(), "master".to_owned());
-        //pull(&repo, credentials.clone());
+        pull(&repo, credentials.clone(), "master".to_owned());
 
         for (file_path, file_appender) in appender.links.iter() {
             let new_files = process_file(
@@ -91,8 +101,9 @@ fn main_run(path: String, dry_run: bool) {
             {
                 let new_files = match entry {
                     Ok(path) => {
-                        if path.is_file() {
+                        if path.is_file() && !path.to_str().unwrap().contains(".git") {
                             let local_path = path.strip_prefix(file_path).unwrap();
+
                             process_file(
                                 folder_appender,
                                 &format!("{}", path.display()),
@@ -105,7 +116,7 @@ fn main_run(path: String, dry_run: bool) {
                                 &repo,
                             )
                         } else {
-                            println!("Ignored folder or link: {:?}", path);
+                            println!("Ignored folder or link: {:?} (or in .git folder)", path);
                             Vec::new()
                         }
                     }
@@ -114,12 +125,16 @@ fn main_run(path: String, dry_run: bool) {
                         Vec::new()
                     }
                 };
+
                 files.extend(new_files);
             }
         }
 
-        let sign = signature();
-        commit_and_push(&repo, credentials, &sign, files);
+        if !files.is_empty() {
+            let sign = signature();
+            commit_and_push(&repo, credentials.clone(), &sign);
+            pull(&repo, credentials.clone(), "master".to_owned());
+        }
     }
 }
 
@@ -139,7 +154,7 @@ enum Commands {
         config_path: String,
 
         #[arg(long)]
-        dry_run: bool,
+        include_appender: Option<String>,
     },
     /// Read a file as the run command would read it, to see what it contains, from your config file.
     #[command(arg_required_else_help = true)]
