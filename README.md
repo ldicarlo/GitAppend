@@ -1,6 +1,6 @@
 # GitAppend
 
-This program make "links" between local files not in a git index repo and files in a git index repo to keep them in sync
+This program makes "links" between local files not in a git index repo and files in a git index repo to keep them in sync.
 
 # Requirements / Installation
 
