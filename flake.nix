@@ -66,6 +66,11 @@
                   type = types.path;
                   description = "The location of the config file. Check the doc for the details.";
                 };
+                timeoutInterval = mkOption {
+                  type = types.string;
+                  description = "The interval of time to run the cron. (systemd style)";
+                  default = "1 min";
+                };
               };
               config = mkIf cfg.enable
                 {
@@ -87,7 +92,7 @@
                     };
                     timerConfig = {
                       OnBootSec = "5 min";
-                      OnUnitInactiveSec = "10 sec";
+                      OnUnitInactiveSec = "${timeoutInterval}";
                     };
                   };
 
@@ -106,6 +111,11 @@
                 configFile = mkOption {
                   type = types.path;
                   description = "The location of the config file. Check the doc for the details.";
+                };
+                timeoutInterval = mkOption {
+                  type = types.string;
+                  description = "The interval of time to run the cron. (systemd style)";
+                  default = "1 min";
                 };
               };
               config = mkIf cfg.enable
@@ -126,7 +136,7 @@
                     Timer = {
                       After = [ "network.target" ];
                       OnBootSec = "5 min";
-                      OnUnitInactiveSec = "10 sec";
+                      OnUnitInactiveSec = "${timeoutInterval}";
                     };
                     Install = {
                       WantedBy = [ "timers.target" ];
