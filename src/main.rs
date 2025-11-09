@@ -2,7 +2,7 @@ use crate::{
     appender::append,
     core::{decrypt_file, process_file},
     file::{get_file_contents_as_lines, get_file_contents_strip_final_end_line, parse_config},
-    git::{fetch, open},
+    git::{open, pull},
 };
 use clap::{Parser, Subcommand};
 use config::GitConfig;
@@ -20,7 +20,10 @@ mod git;
 fn main() {
     let args = Cli::parse();
     match args.command {
-        Commands::Run { config_path } => main_run(config_path),
+        Commands::Run {
+            config_path,
+            include_appender,
+        } => main_run(config_path, include_appender),
         Commands::Cat {
             config_path,
             file,
@@ -43,9 +46,21 @@ fn main() {
     }
 }
 
-fn main_run(path: String) {
+fn main_run(path: String, maybe_include_appender: Option<String>) {
     let configs = parse_config(path);
-    for (git_folder, appender) in configs.appenders.iter() {
+
+    let appenders = maybe_include_appender
+        .map(|include_appender| {
+            configs
+                .appenders
+                .clone()
+                .into_iter()
+                .filter(|(k, _)| k == &include_appender)
+                .collect()
+        })
+        .unwrap_or(configs.appenders);
+
+    for (git_folder, appender) in appenders.iter() {
         let mut files = Vec::new();
         let repo = open(&format!("{}/.git", git_folder));
         // let c = repo.config().unwrap();
@@ -68,27 +83,27 @@ fn main_run(path: String) {
                 )
             },
         );
-        fetch(&repo, credentials.clone(), "master".to_owned());
-        //pull(&repo, credentials.clone());
-        let mut needs_commit = false;
+        pull(&repo, credentials.clone(), "master".to_owned());
+
         for (file_path, file_appender) in appender.links.iter() {
-            let (new_files, new_needs_commit) = process_file(
+            let new_files = process_file(
                 file_appender,
                 file_path,
                 file_appender.source_path.to_owned(),
                 git_folder,
                 &repo,
             );
-            needs_commit = needs_commit || new_needs_commit;
+
             files.extend(new_files);
         }
         for (file_path, folder_appender) in appender.folder_links.iter() {
             for entry in glob(&format!("{}/**/*", file_path)).expect("Failed to read glob pattern")
             {
-                let (new_files, new_needs_commit) = match entry {
+                let new_files = match entry {
                     Ok(path) => {
-                        if path.is_file() {
+                        if path.is_file() && !path.to_str().unwrap().contains(".git") {
                             let local_path = path.strip_prefix(file_path).unwrap();
+
                             process_file(
                                 folder_appender,
                                 &format!("{}", path.display()),
@@ -101,34 +116,24 @@ fn main_run(path: String) {
                                 &repo,
                             )
                         } else {
-                            println!("Ignored folder or link: {:?}", path);
-                            (Vec::new(), false)
+                            println!("Ignored folder or link: {:?} (or in .git folder)", path);
+                            Vec::new()
                         }
                     }
                     Err(e) => {
                         println!("Ignored: {:?}", e);
-                        (Vec::new(), false)
+                        Vec::new()
                     }
                 };
-                needs_commit = needs_commit || new_needs_commit;
+
                 files.extend(new_files);
             }
         }
-        if needs_commit {
-            let statuses = repo.statuses(None).unwrap();
 
-            for entry in statuses.iter() {
-                let status = entry.status();
-                let path = entry.path().unwrap_or_default();
-
-                println!(
-                    "File: {}, index changed? {:?}",
-                    path,
-                    status.is_index_modified()
-                );
-            }
+        if !files.is_empty() {
             let sign = signature();
-            commit_and_push(&repo, credentials, &sign, files);
+            commit_and_push(&repo, credentials.clone(), &sign);
+            pull(&repo, credentials.clone(), "master".to_owned());
         }
     }
 }
@@ -147,6 +152,9 @@ enum Commands {
         /// Configuration file location (see `tests/example-config.json`).
         #[arg(short, long)]
         config_path: String,
+
+        #[arg(long)]
+        include_appender: Option<String>,
     },
     /// Read a file as the run command would read it, to see what it contains, from your config file.
     #[command(arg_required_else_help = true)]
