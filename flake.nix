@@ -79,7 +79,7 @@
                     wantedBy = [ "multi-user.target" ];
                     environment = { };
                     serviceConfig = {
-                      ExecStart = "${git-append}/bin/git-append run --config-path=${configFile}";
+                      ExecStart = "${git-append}/bin/git-append run --config-path=${cfg.configFile}";
                       Restart = "on-failure";
                       RestartSec = "10s";
                     };
@@ -92,7 +92,7 @@
                     };
                     timerConfig = {
                       OnBootSec = "5 min";
-                      OnUnitInactiveSec = "${timeoutInterval}";
+                      OnUnitInactiveSec = "${cfg.timeoutInterval}";
                     };
                   };
 
@@ -136,7 +136,7 @@
                     Timer = {
                       After = [ "network.target" ];
                       OnBootSec = "5 min";
-                      OnUnitInactiveSec = "${timeoutInterval}";
+                      OnUnitInactiveSec = "${cfg.timeoutInterval}";
                     };
                     Install = {
                       WantedBy = [ "timers.target" ];
