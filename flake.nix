@@ -67,7 +67,7 @@
                   description = "The location of the config file. Check the doc for the details.";
                 };
                 timeoutInterval = mkOption {
-                  type = types.string;
+                  type = types.str;
                   description = "The interval of time to run the cron. (systemd style)";
                   default = "1 min";
                 };
@@ -113,7 +113,7 @@
                   description = "The location of the config file. Check the doc for the details.";
                 };
                 timeoutInterval = mkOption {
-                  type = types.string;
+                  type = types.str;
                   description = "The interval of time to run the cron. (systemd style)";
                   default = "1 min";
                 };
