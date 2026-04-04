@@ -44,13 +44,13 @@ fn commit(repo: &Repository, sign: &Signature) -> Option<Oid> {
     index
         .add_all(["*"].iter(), IndexAddOption::FORCE, None)
         .unwrap();
-    if index.is_empty() {
+    let oid = index.write_tree().unwrap();
+    index.write().unwrap();
+    if oid == parent_commit.tree_id() {
         None
     } else {
-        let oid = index.write_tree().unwrap();
-        println!("oid: {:?}", oid);
-        index.write().unwrap();
         let tree = repo.find_tree(oid).unwrap();
+        println!("oid: {:?}", oid);
         println!("tree: {:?}", tree);
         repo.commit(
             Some("HEAD"),

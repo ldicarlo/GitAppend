@@ -132,7 +132,7 @@ fn apply_feature_rmb(content: Vec<Vec<u8>>, feature: bool) -> Vec<Vec<u8>> {
 }
 
 fn feature_remove_multilines_bash(content: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
-    content
+    let (mut acc, remaining) = content
         .into_iter()
         .fold(
             (Vec::new(), None) as (Vec<Vec<u8>>, Option<Vec<u8>>),
@@ -159,8 +159,11 @@ fn feature_remove_multilines_bash(content: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
                     (acc, None)
                 }
             },
-        )
-        .0
+        );
+    if let Some(line) = remaining {
+        acc.push(line);
+    }
+    acc
 }
 
 #[cfg(test)]
