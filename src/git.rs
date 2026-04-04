@@ -75,11 +75,6 @@ fn fetch(
     remote
         .connect_auth(Direction::Fetch, Some(create_callbacks(credentials)), None)
         .unwrap();
-    repo.remote_add_fetch(
-        "http-origin",
-        &format!("refs/heads/{}:refs/heads/{}", branch, branch),
-    )
-    .unwrap();
     remote
         .fetch(&[&branch], Some(&mut fetch_options), None)
         .unwrap();
